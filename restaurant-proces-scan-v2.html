@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procesoptimalisatie Scan v2 — Niels Automatiseert</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+
+:root {
+  --ink: #0f0e0c;
+  --paper: #f6f3ee;
+  --surface: #ffffff;
+  --line: #e0dbd2;
+  --line2: #ccc7bc;
+  --accent: #c84b2f;
+  --accent-light: #f5e8e4;
+  --muted: #7a7570;
+  --muted2: #a09b95;
+  --green: #2d6a4f;
+  --green-light: #e8f4ed;
+  --blue: #1d4ed8;
+  --blue-light: #eff6ff;
+  --amber: #92400e;
+  --amber-light: #fef3c7;
+  --purple: #6d28d9;
+  --purple-light: #f5f3ff;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--paper); color: var(--ink); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+/* ── SETUP ── */
+#setup-screen { min-height: 100vh; display: flex; flex-direction: column; }
+.setup-header { padding: 2rem 3rem; border-bottom: 2px solid var(--ink); display: flex; align-items: center; justify-content: space-between; }
+.logo { font-family: 'DM Serif Display', serif; font-size: 1.3rem; letter-spacing: -0.02em; }
+.logo em { font-style: italic; color: var(--accent); }
+.setup-body { max-width: 760px; margin: 0 auto; padding: 4rem 2rem 6rem; width: 100%; }
+.setup-intro { margin-bottom: 3rem; }
+.setup-label { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.75rem; display: block; }
+.setup-intro h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 1rem; }
+.setup-intro h1 em { font-style: italic; color: var(--accent); }
+.setup-intro p { font-size: 0.95rem; color: var(--muted); line-height: 1.7; max-width: 520px; }
+.restaurant-field { margin-bottom: 2.5rem; }
+.field-label { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; display: block; }
+.restaurant-input { width: 100%; padding: 0.85rem 1.1rem; border: 2px solid var(--line2); background: var(--surface); font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--ink); outline: none; transition: border-color 0.2s; border-radius: 0; letter-spacing: -0.02em; }
+.restaurant-input:focus { border-color: var(--ink); }
+.restaurant-input::placeholder { color: var(--muted2); }
+.modules-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; display: block; }
+.modules-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 2.5rem; }
+.module-toggle { position: relative; cursor: pointer; }
+.module-toggle input { position: absolute; opacity: 0; width: 0; }
+.module-toggle label { display: flex; align-items: flex-start; gap: 1rem; padding: 1.1rem 1.2rem; border: 2px solid var(--line); background: var(--surface); cursor: pointer; transition: all 0.15s; user-select: none; }
+.module-toggle input:checked + label { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.module-toggle label:hover { border-color: var(--line2); background: #faf8f4; }
+.module-toggle input:checked + label:hover { background: #1a1916; }
+.module-emoji { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+.module-info { flex: 1; }
+.module-name { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.2rem; line-height: 1.3; }
+.module-desc { font-size: 0.75rem; opacity: 0.65; line-height: 1.4; }
+.module-check { width: 18px; height: 18px; border: 2px solid currentColor; border-radius: 2px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; opacity: 0; transition: opacity 0.15s; }
+.module-toggle input:checked + label .module-check { opacity: 1; }
+.btn-start { display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 2.5rem; background: var(--ink); color: var(--paper); border: none; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; width: 100%; justify-content: center; }
+.btn-start:hover { background: var(--accent); }
+.btn-start:disabled { opacity: 0.4; cursor: not-allowed; background: var(--ink); }
+
+/* ── SCAN SCREEN ── */
+#scan-screen { display: none; }
+.scan-header { position: sticky; top: 0; z-index: 100; background: rgba(246,243,238,0.96); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.scan-header-inner { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2.5rem; max-width: 900px; margin: 0 auto; }
+.scan-logo { font-family: 'DM Serif Display', serif; font-size: 1rem; letter-spacing: -0.02em; }
+.scan-logo em { font-style: italic; color: var(--accent); }
+.scan-progress-wrap { display: flex; align-items: center; gap: 1rem; flex: 1; max-width: 360px; margin: 0 2rem; }
+.scan-progress-track { flex: 1; height: 2px; background: var(--line); }
+.scan-progress-fill { height: 100%; background: var(--ink); transition: width 0.4s ease; width: 0%; }
+.scan-progress-label { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); white-space: nowrap; }
+.module-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--line); padding: 0 2.5rem; max-width: 900px; margin: 0 auto; scrollbar-width: none; }
+.module-tabs::-webkit-scrollbar { display: none; }
+.module-tab { display: flex; align-items: center; gap: 0.4rem; padding: 0.7rem 1.2rem; font-family: 'DM Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
+.module-tab:hover { color: var(--ink); }
+.module-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+.module-tab.done { color: var(--green); }
+.module-tab.done::after { content: ' ✓'; }
+
+/* ── MODULE CONTENT ── */
+.scan-body { max-width: 760px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+.module-content { display: none; }
+.module-content.active { display: block; }
+.module-header { margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--ink); }
+.module-header-top { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.5rem; }
+.module-num { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--accent); letter-spacing: 0.1em; flex-shrink: 0; }
+.module-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; letter-spacing: -0.03em; }
+.module-sub { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
+.tips-box { padding: 1rem 1.2rem; background: var(--blue-light); border-left: 3px solid var(--blue); font-size: 0.8rem; color: #1e3a8a; line-height: 1.7; }
+
+/* ── SECTIONS & QUESTIONS ── */
+.vraag-sectie { margin-bottom: 2.5rem; }
+.sectie-titel { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 1.2rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 0.5rem; }
+.vraag { margin-bottom: 1.8rem; }
+.vraag-tekst { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; line-height: 1.5; color: var(--ink); }
+.vraag-hint { font-size: 0.75rem; color: var(--muted); font-style: italic; margin-bottom: 0.6rem; line-height: 1.5; display: block; }
+
+/* NEW: question type tags */
+.vraag-tag { display: inline-block; font-family: 'DM Mono', monospace; font-size: 0.58rem; padding: 0.1rem 0.45rem; border-radius: 2px; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.tag-geld { background: #fef3c7; color: #92400e; }
+.tag-kritiek { background: #fde8e0; color: var(--accent); }
+.tag-inzicht { background: var(--purple-light); color: var(--purple); }
+.tag-universeel { background: #f0fdf4; color: var(--green); }
+
+.voorbeeld { margin-bottom: 0.75rem; padding: 0.85rem 1rem; background: var(--amber-light); border-left: 3px solid #d97706; font-size: 0.78rem; color: var(--amber); line-height: 1.65; font-style: italic; }
+.voorbeeld-label { font-style: normal; font-family: 'DM Mono', monospace; font-size: 0.62rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: #b45309; display: block; margin-bottom: 0.4rem; }
+
+textarea { width: 100%; padding: 0.85rem 1rem; border: 1.5px solid var(--line2); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--ink); resize: vertical; min-height: 90px; outline: none; transition: border-color 0.2s; line-height: 1.6; border-radius: 0; }
+textarea:focus { border-color: var(--ink); }
+textarea::placeholder { color: var(--muted2); font-style: italic; }
+input[type="text"], input[type="email"], input[type="number"] { width: 100%; padding: 0.7rem 1rem; border: 1.5px solid var(--line2); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--ink); outline: none; transition: border-color 0.2s; border-radius: 0; }
+input:focus { border-color: var(--ink); }
+
+/* NEW: universele vragen blok */
+.universeel-blok { margin-top: 3rem; padding: 1.5rem; background: var(--green-light); border: 1.5px solid #a7f3d0; }
+.universeel-blok-titel { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--green); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.2rem; display: block; }
+
+/* ── NAV ── */
+.module-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--line); }
+.btn-nav { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.8rem; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all 0.15s; border-radius: 0; }
+.btn-prev { background: transparent; border: 1.5px solid var(--line2); color: var(--muted); }
+.btn-prev:hover { border-color: var(--ink); color: var(--ink); }
+.btn-next { background: var(--ink); border: 1.5px solid var(--ink); color: var(--paper); }
+.btn-next:hover { background: var(--accent); border-color: var(--accent); }
+.btn-submit-final { background: var(--green); border: 1.5px solid var(--green); color: white; padding: 0.85rem 2.2rem; }
+.btn-submit-final:hover { opacity: 0.9; }
+
+/* ── SENDING ── */
+#sending-overlay { display: none; position: fixed; inset: 0; background: rgba(246,243,238,0.96); backdrop-filter: blur(8px); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
+#sending-overlay.active { display: flex; }
+.sending-spinner { width: 40px; height: 40px; border: 2px solid var(--line2); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.sending-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; letter-spacing: -0.02em; }
+.sending-sub { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* ── RESULT ── */
+#result-screen { display: none; max-width: 760px; margin: 0 auto; padding: 4rem 2rem 8rem; }
+.result-header { margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--ink); }
+.result-header h2 { font-family: 'DM Serif Display', serif; font-size: 2rem; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+.result-header p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+.result-modules { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; }
+.result-module { padding: 1.5rem; border: 1.5px solid var(--line); background: var(--surface); }
+.result-module-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.2rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--line); }
+.result-module-emoji { font-size: 1.2rem; }
+.result-module-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; }
+.aanbeveling { display: flex; gap: 0.75rem; padding: 0.75rem 0.9rem; margin-bottom: 0.5rem; font-size: 0.82rem; line-height: 1.55; border-left: 3px solid var(--line2); background: #faf8f4; }
+.aanbeveling.hoog { border-left-color: var(--accent); background: var(--accent-light); }
+.aanbeveling.mid  { border-left-color: var(--blue);   background: var(--blue-light); }
+.aanbeveling.laag { border-left-color: var(--green);  background: var(--green-light); }
+.prio-badge { font-family: 'DM Mono', monospace; font-size: 0.58rem; padding: 0.1rem 0.35rem; font-weight: 500; flex-shrink: 0; height: fit-content; margin-top: 2px; text-transform: uppercase; }
+.aanbeveling.hoog .prio-badge { background: #fde8e0; color: var(--accent); }
+.aanbeveling.mid  .prio-badge { background: #dbeafe; color: var(--blue); }
+.aanbeveling.laag .prio-badge { background: #d1fae5; color: var(--green); }
+.btn-print { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border: 1.5px solid var(--ink); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+.btn-print:hover { background: var(--ink); color: var(--paper); }
+
+@media (max-width: 600px) {
+  .setup-header, .scan-header-inner, .module-tabs { padding-left: 1.2rem; padding-right: 1.2rem; }
+  .setup-body, .scan-body { padding-left: 1.2rem; padding-right: 1.2rem; }
+  .modules-grid { grid-template-columns: 1fr; }
+  .scan-progress-wrap { display: none; }
+}
+@media print {
+  .scan-header, #setup-screen, #scan-screen { display: none !important; }
+  #result-screen { display: block !important; padding: 1rem; }
+  .btn-print { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SETUP ══════════ -->
+<div id="setup-screen">
+  <header class="setup-header">
+    <div class="logo">Niels<em>Automatiseert</em></div>
+    <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Procesoptimalisatie · Restaurant · v2</span>
+  </header>
+  <div class="setup-body">
+    <div class="setup-intro">
+      <span class="setup-label">Stap 1 — Configureer de scan</span>
+      <h1>Welke afdelingen<br>gaan we <em>analyseren?</em></h1>
+      <p>Vul de naam van het restaurant in en activeer de afdelingen die van toepassing zijn. Elke afdeling krijgt zijn eigen vragenlijst — geen patisserie? Gewoon uitvinken.</p>
+    </div>
+    <div class="restaurant-field">
+      <label class="field-label" for="restaurant-naam">Naam van het restaurant</label>
+      <input type="text" id="restaurant-naam" class="restaurant-input" placeholder="bijv. Restaurant De Zwaan" oninput="checkSetup()">
+    </div>
+    <span class="modules-title">Actieve afdelingen / modules</span>
+    <div class="modules-grid">
+      <div class="module-toggle">
+        <input type="checkbox" id="mod-keuken" value="keuken" checked onchange="checkSetup()">
+        <label for="mod-keuken"><span class="module-emoji">👨‍🍳</span><div class="module-info"><div class="module-name">Keuken</div><div class="module-desc">Chef & sous chef — dagstart, inkoop, service, kennisbehoud</div></div><div class="module-check">✓</div></label>
+      </div>
+      <div class="module-toggle">
+        <input type="checkbox" id="mod-patisserie" value="patisserie" onchange="checkSetup()">
+        <label for="mod-patisserie"><span class="module-emoji">🍰</span><div class="module-info"><div class="module-name">Patisserie</div><div class="module-desc">Desserts, taarten, communicatie & kennisborging</div></div><div class="module-check">✓</div></label>
+      </div>
+      <div class="module-toggle">
+        <input type="checkbox" id="mod-bediening" value="bediening" checked onchange="checkSetup()">
+        <label for="mod-bediening"><span class="module-emoji">🍽️</span><div class="module-info"><div class="module-name">Bediening</div><div class="module-desc">Service, communicatie, klachten & onboarding</div></div><div class="module-check">✓</div></label>
+      </div>
+      <div class="module-toggle">
+        <input type="checkbox" id="mod-partijen" value="partijen" onchange="checkSetup()">
+        <label for="mod-partijen"><span class="module-emoji">🎉</span><div class="module-info"><div class="module-name">Partijen & Events</div><div class="module-desc">Intake, coördinatie, marge & evaluatie</div></div><div class="module-check">✓</div></label>
+      </div>
+      <div class="module-toggle">
+        <input type="checkbox" id="mod-reserveringen" value="reserveringen" checked onchange="checkSetup()">
+        <label for="mod-reserveringen"><span class="module-emoji">📞</span><div class="module-info"><div class="module-name">Reserveringen & Klantcontact</div><div class="module-desc">Boekingen, gemiste calls, allergieën, reviews</div></div><div class="module-check">✓</div></label>
+      </div>
+      <div class="module-toggle">
+        <input type="checkbox" id="mod-bedrijfsvoering" value="bedrijfsvoering" checked onchange="checkSetup()">
+        <label for="mod-bedrijfsvoering"><span class="module-emoji">📊</span><div class="module-info"><div class="module-name">Bedrijfsvoering & Cijfers</div><div class="module-desc">Financiën, marge, personeel, strategie & groei</div></div><div class="module-check">✓</div></label>
+      </div>
+    </div>
+    <button class="btn-start" id="btn-start" onclick="startScan()" disabled>Start de scan →</button>
+  </div>
+</div>
+
+<!-- ══════════ SCAN SCREEN ══════════ -->
+<div id="scan-screen">
+  <header class="scan-header">
+    <div class="scan-header-inner">
+      <div class="scan-logo">Niels<em>Automatiseert</em></div>
+      <div class="scan-progress-wrap">
+        <div class="scan-progress-track"><div class="scan-progress-fill" id="progress-fill"></div></div>
+        <span class="scan-progress-label" id="progress-label">0%</span>
+      </div>
+      <span id="restaurant-naam-display" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted)"></span>
+    </div>
+    <div class="module-tabs" id="module-tabs"></div>
+  </header>
+
+  <div class="scan-body">
+
+    <!-- ══════ MODULE: KEUKEN ══════ -->
+    <div class="module-content" id="module-keuken">
+      <div class="module-header">
+        <div class="module-header-top"><span class="module-num">01 —</span><h2 class="module-title">👨‍🍳 Keuken — Chef & Sous Chef</h2></div>
+        <p class="module-sub">Van dagstart tot inkoop tot service — en wat er verloren gaat als jij er niet bent.</p>
+        <div class="tips-box">✏️ Schrijf zoals je praat — geen formele zinnen nodig.<br>🔢 Noem specifieke getallen — niet 'veel tijd' maar 'ongeveer 20 minuten elke ochtend'.<br>⚠️ Noem ook wat er weleens fout gaat — dat is de meest waardevolle informatie.<br>💡 Er zijn geen foute antwoorden.</div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🌅 Dagstart & Voorbereiding</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe laat begin je en wat is het eerste wat je doet?</div>
+          <div class="voorbeeld"><span class="voorbeeld-label">📝 Voorbeeld van een goed antwoord</span>Ik begin om 09:00. Eerst zet ik koffie en dan pak ik mijn telefoon om de reserveringslijst te checken in GuestPlan. Ik kijk hoeveel couverts we hebben en of er bijzonderheden zijn zoals allergieën of grote groepen. Daarna bespreek ik het kort met de sous chef — dat duurt ongeveer 10 minuten. Rond 09:30 beginnen we met de mise en place.</div>
+          <textarea name="keuken_dagstart" placeholder="Beschrijf je ochtend zo concreet mogelijk..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel tijd kost het doornemen van de reserveringslijst — en mis je weleens iets?</div>
+          <textarea name="keuken_reserveringslijst_tijd" placeholder="bijv. Ongeveer 10 minuten. Bij drukke avonden met veel bijzonderheden kan dat 20 minuten zijn. Allergieën staan soms niet duidelijk vermeld..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wie maakt de mise en place lijst en hoe lang duurt dat? Staat die ergens opgeslagen of maak je hem elke dag opnieuw?</div>
+          <span class="vraag-tag tag-kritiek">Kritiek</span>
+          <textarea name="keuken_mep_lijst" placeholder="bijv. Ik maak die zelf elke ochtend in 15 minuten. Het staat nergens opgeslagen — ik maak hem steeds opnieuw op basis van wat ik weet..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe bereken je hoeveel je van elk gerecht nodig hebt? En heb je weleens te veel of te weinig ingekocht door een verkeerde inschatting?</div>
+          <textarea name="keuken_gerecht_berekening" placeholder="bijv. Op basis van het aantal couverts reken ik 70% vis, 30% vlees. Maar dat klopt niet altijd — vorige maand hadden we vis over omdat veel gasten voor vlees kozen..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel leveranciers heb je en hoeveel tijd ben je per week kwijt aan contact met ze — bellen, mailen, bestellen?</div>
+          <span class="vraag-tag tag-geld">Tijdgeld</span>
+          <textarea name="keuken_leveranciers" placeholder="bijv. We hebben 6 leveranciers. Bellen doe ik zelf, elke ochtend 20-30 minuten. Groenten bel ik dagelijks, vlees 3x per week..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🔥 Tijdens de Service</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe weet je tijdens de service welke tafel welke allergie heeft? Hoe betrouwbaar werkt dat in de praktijk?</div>
+          <span class="vraag-tag tag-kritiek">Kritiek — veiligheid</span>
+          <textarea name="keuken_allergie_service" placeholder="bijv. De bediening zegt het mondeling bij het doorgeven van de bestelling. Of het staat op een post-it op de bon. Dat gaat soms mis..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als er last-minute iets wijzigt — allergie, extra gast, wijziging menu — hoe kom je dat te weten en hoe snel?</div>
+          <textarea name="keuken_lastminute" placeholder="bijv. De bediening roept het vanuit de zaal, of schrijft het op een bonnetje. Soms hoor ik het te laat..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er weleens iets misgegaan omdat een opmerking over het hoofd werd gezien? Wat was het gevolg?</div>
+          <textarea name="keuken_miscommunicatie" placeholder="Beschrijf een concreet voorbeeld — ook als het klein leek. Dit is de meest waardevolle informatie..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe communiceer je met de bediening tijdens de service — en wat werkt goed of juist niet?</div>
+          <textarea name="keuken_comm_bediening" placeholder="bijv. Mondeling, via een display, via bons. Tijdens een drukke service gaat mondeling vaak mis..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🌙 Na de Service & Kennisbehoud</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel verspilling is er gemiddeld per service — en weet je waardoor dat komt?</div>
+          <span class="vraag-tag tag-geld">Tijdgeld</span>
+          <textarea name="keuken_verspilling" placeholder="bijv. Gemiddeld gooien we 10-15% van de mise en place weg. Vooral vis als er minder gasten komen dan verwacht. We meten het niet echt..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Houd je bij welke gerechten het meest worden besteld — en gebruik je dat voor je inkoop en mise en place?</div>
+          <textarea name="keuken_bestsellers" placeholder="bijv. Nee, we kijken pas achteraf in het kassasysteem als het opvalt. Of: ik weet het globaal uit mijn hoofd maar schrijf niets op..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als jij er morgen niet bent — kan een collega dan jouw werk overnemen? Wat is er opgeschreven en wat zit alleen in jouw hoofd?</div>
+          <span class="vraag-tag tag-kritiek">Kennisborging</span>
+          <textarea name="keuken_kennisborging" placeholder="bijv. De sous chef kan het overnemen maar de recepten en bereidingstijden zitten grotendeels in mijn hoofd. We hebben geen receptenboek..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat kost jou elke dag het meeste tijd buiten het koken zelf?</div>
+          <textarea name="keuken_tijdverlies" placeholder="bijv. Leveranciers bellen, de mise en place lijst maken opnieuw, communiceren over allergieën..."></textarea>
+        </div>
+      </div>
+
+      <div class="universeel-blok">
+        <span class="universeel-blok-titel">🌿 Twee universele vragen — altijd het meest waardevol</span>
+        <div class="vraag">
+          <div class="vraag-tekst">Beschrijf een week in de keuken die écht goed liep — wat maakte die week anders dan normaal?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="keuken_goede_week" placeholder="bijv. We hadden een week met vaste gasten, geen grote partijen, en de sous chef en ik hadden alles voorbereid. Geen last-minute wijzigingen..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat heb je de afgelopen twee jaar geprobeerd te verbeteren in de keuken — en waarom werkte dat niet of onvoldoende?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="keuken_eerdere_pogingen" placeholder="bijv. We hebben geprobeerd een vaste inkoopdienst te maken maar dat was te rigide. Of: we hebben een nieuw kassasysteem geïmplementeerd maar de keuken gebruikt het niet echt..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je één ding magisch kon oplossen morgen, wat zou dat zijn?</div>
+          <textarea name="keuken_magic" placeholder="Wees eerlijk en concreet — dit is de meest waardevolle vraag van de lijst..."></textarea>
+        </div>
+      </div>
+
+      <div class="module-nav">
+        <div></div>
+        <button class="btn-nav btn-next" onclick="volgendeModule()">Volgende afdeling →</button>
+      </div>
+    </div>
+
+    <!-- ══════ MODULE: PATISSERIE ══════ -->
+    <div class="module-content" id="module-patisserie">
+      <div class="module-header">
+        <div class="module-header-top"><span class="module-num">02 —</span><h2 class="module-title">🍰 Patisserie</h2></div>
+        <p class="module-sub">Voorbereiding, communicatie, kennisborging en grote gelegenheden.</p>
+        <div class="tips-box">✏️ Schrijf zoals je praat.<br>🔢 Noem specifieke getallen waar je kan.<br>⚠️ Noem ook wat er weleens fout gaat — dat is juist de meest waardevolle informatie.<br>💡 Er zijn geen foute antwoorden.</div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🌅 Voorbereiding & Planning</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe ver van tevoren weet je hoeveel desserts je moet maken?</div>
+          <div class="voorbeeld"><span class="voorbeeld-label">📝 Voorbeeld van een goed antwoord</span>Dat weet ik eigenlijk nooit precies van tevoren. Ik kijk de ochtend zelf in de lijst hoeveel gasten er komen en reken dan globaal: 80% bestelt een dessert. Maar bij brunch weet ik dat niet, want daar staat geen dessert apart op. Soms maak ik te veel en gooi ik aan het einde van de dag iets weg. Bij grote partijen krijg ik de aantallen wel eerder door, maar dat gaat nog via een briefje of mondeling — niet altijd even duidelijk.</div>
+          <textarea name="pat_voorbereiding_aantallen" placeholder="Beschrijf hoe je nu inschat hoeveel je moet maken..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe ver van tevoren moet je beginnen met een bruidstaart of andere specialiteit — en hoe communiceer je die deadline intern?</div>
+          <span class="vraag-tag tag-kritiek">Planningsrisico</span>
+          <textarea name="pat_deadline_intern" placeholder="bijv. Een bruidstaart heeft 3 dagen voorbereiding. Maar als ik dat niet vroeg genoeg weet, kan ik niet leveren. De communicatie daarvoor loopt via de eigenaar, niet altijd op tijd..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe krijg je informatie over speciale verzoeken — verjaardagstaart, dieetwensen bij desserts?</div>
+          <textarea name="pat_speciale_verzoeken" placeholder="bijv. Via de eigenaar mondeling, via een briefje, via het reserveringssysteem — en hoe betrouwbaar is dat?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Heb je weleens te weinig of te veel gemaakt omdat de informatie niet klopte of te laat kwam?</div>
+          <textarea name="pat_info_fout" placeholder="Beschrijf een concreet voorbeeld — wat was er mis, wat was het gevolg?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe ga je om met last-minute verzoeken — een verjaardagstaart op de dag zelf?</div>
+          <textarea name="pat_lastminute" placeholder="bijv. Dat kan soms als er iets in de koeling ligt. Maar dan moet ik iets anders laten staan..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🎉 Bijzondere Gelegenheden</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Bij bruiloften of partijen — hoe ver van tevoren krijg je de details en via wie?</div>
+          <textarea name="pat_partij_details" placeholder="bijv. Soms een week van tevoren, soms pas twee dagen ervoor. De communicatie loopt via de eigenaar, niet direct met de klant..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er een vaste werkwijze voor grote groepen of improviseer je dat per keer?</div>
+          <textarea name="pat_grote_groepen" placeholder="bijv. We improviseren altijd. Er is geen vast document of checklist die ik ontvang voor een partij..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat is de grootste uitdaging bij desserts voor grote gezelschappen?</div>
+          <textarea name="pat_uitdaging_groot" placeholder="bijv. Timing — alles moet tegelijk klaar zijn maar ik weet pas laat hoe het diner verloopt qua tempo..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">💬 Communicatie & Kennisborging</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Met wie stem je af over aantallen — de chef, de eigenaar, de bediening?</div>
+          <textarea name="pat_afstemming" placeholder="bijv. Altijd met de chef, maar die heeft het druk. Met de bediening nauwelijks direct contact..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er weleens miscommunicatie geweest over aantallen of dieetwensen bij desserts?</div>
+          <textarea name="pat_miscommunicatie" placeholder="Beschrijf een concreet voorbeeld — wat ging er mis en hoe had het voorkomen kunnen worden?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als jij er een dag niet bent — kan een collega dan jouw werk overnemen? Wat staat er opgeschreven en wat zit in jouw hoofd?</div>
+          <span class="vraag-tag tag-kritiek">Kennisborging</span>
+          <textarea name="pat_kennisborging" placeholder="bijv. De chef kan iets basaals maken maar mijn specialiteiten zitten in mijn hoofd. Geen receptenboek, geen procedure opgeschreven..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat kost jou het meeste tijd per dag buiten het maken van desserts?</div>
+          <textarea name="pat_tijdverlies" placeholder="bijv. Wachten op informatie, zelf uitzoeken hoeveel ik nodig heb, last-minute aanpassingen verwerken..."></textarea>
+        </div>
+      </div>
+
+      <div class="universeel-blok">
+        <span class="universeel-blok-titel">🌿 Twee universele vragen — altijd het meest waardevol</span>
+        <div class="vraag">
+          <div class="vraag-tekst">Beschrijf een week in de patisserie die écht goed liep — wat maakte die anders?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="pat_goede_week" placeholder="bijv. We hadden alle aantallen twee dagen van tevoren, geen last-minute verzoeken en ik had een vaste dagindeling..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat heb je de afgelopen twee jaar geprobeerd te verbeteren — en waarom werkte dat niet?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="pat_eerdere_pogingen" placeholder="bijv. We hebben geprobeerd een briefingformulier voor partijen in te voeren maar niemand vult het in. Of: ik heb gevraagd om eerder aantallen maar dat werkt niet consequent..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je één ding magisch kon oplossen morgen, wat zou dat zijn?</div>
+          <textarea name="pat_magic" placeholder="Wees eerlijk en concreet..."></textarea>
+        </div>
+      </div>
+
+      <div class="module-nav">
+        <button class="btn-nav btn-prev" onclick="vorigeModule()">← Vorige</button>
+        <button class="btn-nav btn-next" onclick="volgendeModule()">Volgende afdeling →</button>
+      </div>
+    </div>
+
+    <!-- ══════ MODULE: BEDIENING ══════ -->
+    <div class="module-content" id="module-bediening">
+      <div class="module-header">
+        <div class="module-header-top"><span class="module-num">03 —</span><h2 class="module-title">🍽️ Bediening</h2></div>
+        <p class="module-sub">Van de voorbereiding tot na de service — inclusief klachten, bevoegdheden en onboarding.</p>
+        <div class="tips-box">✏️ Schrijf zoals je praat.<br>🔢 Noem specifieke getallen — niet 'vaak' maar 'ongeveer 3 keer per service'.<br>⚠️ Noem ook wat er weleens fout gaat.<br>💡 Er zijn geen foute antwoorden.</div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🌅 Voorbereiding</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe laat lezen jullie de reserveringslijst door en hoe lang duurt dat?</div>
+          <div class="voorbeeld"><span class="voorbeeld-label">📝 Voorbeeld van een goed antwoord</span>We lezen de lijst met z'n drieën door om half twaalf, net voor de lunch begint. Dat duurt gemiddeld 15 minuten. We gaan de lijst door op de iPad en iedereen schrijft zelf de bijzonderheden op een klein briefje dat ze in hun zak stoppen. Er is geen vaste verdeling — wie het eerst ziet roept het even. Soms mist iemand iets omdat we er niet allemaal tegelijk bij zijn.</div>
+          <textarea name="bed_reserveringslijst" placeholder="Beschrijf zo concreet mogelijk hoe dit in de praktijk gaat..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe verdelen jullie de tafels onderling — is dat elke dag anders en hoe bepalen jullie dat?</div>
+          <textarea name="bed_tafelverdeling" placeholder="bijv. Dat regelen we zelf onderling. Er is geen vaste indeling. Bij drukte gaat dat soms mis..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe onthouden jullie welke tafel welke allergie of bijzonderheid heeft tijdens de service?</div>
+          <span class="vraag-tag tag-kritiek">Kritiek — veiligheid</span>
+          <textarea name="bed_allergie_onthouden" placeholder="bijv. Briefje in de zak, mondeling, bonnetje in de keuken — en hoe betrouwbaar werkt dat echt?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er een briefing voor de service of lees je alles zelf uit de lijst? Wat mis je daardoor weleens?</div>
+          <textarea name="bed_briefing" placeholder="bijv. De chef geeft soms een korte briefing, maar niet altijd. Meestal lezen we zelf en dan mist iemand weleens iets..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🔥 Tijdens de Service</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe geef je een allergie of bijzonderheid door aan de keuken — en hoe controleer je of het ook echt goed aankomt?</div>
+          <textarea name="bed_allergie_keuken" placeholder="bijv. Mondeling bij het doorgeven van de bestelling, of via een sticker op de bon. Controleren doe ik eigenlijk niet..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wanneer een gast een klacht heeft aan tafel — wat doe je dan en wie beslist over compensatie?</div>
+          <span class="vraag-tag tag-kritiek">Bevoegdheid</span>
+          <textarea name="bed_klacht_tafel" placeholder="bijv. Ik excuseer me en loop naar de eigenaar. Ik mag zelf niets weggeven. Dat kost altijd tijd en de gast wacht dan..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als een gast iets wijzigt tijdens het eten — hoe verloopt dat naar de keuken?</div>
+          <textarea name="bed_wijziging_gast" placeholder="bijv. Ik loop naar de keuken en zeg het, of ik stuur een bericht via het systeem. Dat gaat soms te laat..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe weet je wanneer een tafel klaar is voor de volgende gang?</div>
+          <textarea name="bed_timing_gang" placeholder="bijv. Ik let zelf op, of de keuken geeft een seintje. Hoe gaat dat precies — en wat loopt soms mis?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Bij grote groepen — hoe houd je bij wie wat heeft besteld?</div>
+          <textarea name="bed_grote_groep" placeholder="bijv. We schrijven het op een vel papier met stoelnummers, of we onthouden het. Bij meer dan 10 personen gaat het soms mis..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er weleens iets misgegaan in de communicatie tussen bediening en keuken? Wat was het gevolg voor de gast?</div>
+          <textarea name="bed_miscommunicatie" placeholder="Beschrijf een concreet voorbeeld — ook als het klein leek. Dit geeft ons de meeste informatie..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat vind je het meest stressvolle moment van een service?</div>
+          <textarea name="bed_stress" placeholder="bijv. Als meerdere tafels tegelijk vragen en ik niet weet wie prioriteit heeft..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🌙 Na de Service & Onboarding</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe lang duurt het voordat een nieuwe medewerker zelfstandig kan werken — en hoe verloopt die inwerkperiode?</div>
+          <span class="vraag-tag tag-inzicht">Onboarding</span>
+          <textarea name="bed_onboarding" placeholder="bijv. Na 2 weken kunnen ze de basis. Maar de bijzonderheden van stamgasten en de werkwijze met de keuken leren ze pas na maanden. Er is geen inwerk-document..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe worden fooien verdeeld — is dat een systeem of per keer?</div>
+          <textarea name="bed_fooien" placeholder="bijv. We verdelen altijd gelijk, of ieder houdt zijn eigen fooi. Hoe gaat dat precies?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Geef je feedback terug aan de keuken over wat gasten vonden — is daar een vaste manier voor?</div>
+          <textarea name="bed_feedback_keuken" placeholder="bijv. Soms, als er echt iets was. Maar er is geen vaste manier — positieve feedback geef ik bijna nooit door..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat kost jou het meeste tijd per dag buiten het bedienen zelf?</div>
+          <textarea name="bed_tijdverlies" placeholder="bijv. Het doornemen van de reserveringslijst, allergieën bijhouden, communiceren met keuken over wijzigingen..."></textarea>
+        </div>
+      </div>
+
+      <div class="universeel-blok">
+        <span class="universeel-blok-titel">🌿 Twee universele vragen — altijd het meest waardevol</span>
+        <div class="vraag">
+          <div class="vraag-tekst">Beschrijf een service die écht goed liep — wat maakte die anders dan normaal?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="bed_goede_service" placeholder="bijv. We hadden een volledig team, een goede briefing voor de service en de keuken communiceerde via het scherm in plaats van mondeling..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat hebben jullie de afgelopen twee jaar geprobeerd te verbeteren in de bediening — en waarom werkte dat niet?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="bed_eerdere_pogingen" placeholder="bijv. We hebben een nieuw kassasysteem gekregen maar de keuken gebruikt het niet consequent. Of: we hebben briefings ingevoerd maar die zijn na een maand gestopt..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je één ding magisch kon oplossen morgen, wat zou dat zijn?</div>
+          <textarea name="bed_magic" placeholder="Wees eerlijk en concreet..."></textarea>
+        </div>
+      </div>
+
+      <div class="module-nav">
+        <button class="btn-nav btn-prev" onclick="vorigeModule()">← Vorige</button>
+        <button class="btn-nav btn-next" onclick="volgendeModule()">Volgende afdeling →</button>
+      </div>
+    </div>
+
+    <!-- ══════ MODULE: PARTIJEN ══════ -->
+    <div class="module-content" id="module-partijen">
+      <div class="module-header">
+        <div class="module-header-top"><span class="module-num">04 —</span><h2 class="module-title">🎉 Partijen & Events</h2></div>
+        <p class="module-sub">Intake, coördinatie, marge, evaluatie — en hoeveel tijd een partij echt kost.</p>
+        <div class="tips-box">✏️ Schrijf zoals je praat.<br>🔢 Noem specifieke getallen — aantal mailtjes, uren, weken van tevoren, bedragen.<br>⚠️ Noem ook wat er weleens fout gaat.<br>💡 Er zijn geen foute antwoorden.</div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">📋 Voorbereiding & Intake</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe verloopt het eerste contact met een klant voor een partij?</div>
+          <div class="voorbeeld"><span class="voorbeeld-label">📝 Voorbeeld van een goed antwoord</span>Meestal belt iemand of stuurt een email via de website. Ik bel dan terug voor een eerste gesprek — dat duurt zo 20 tot 30 minuten. Ik vraag dan: datum, aantal personen, type gelegenheid, budget globaal en of er bijzonderheden zijn. Dat schrijf ik op in een notitieboekje. Daarna stuur ik een offerte in Word. Het gaat dan nog een paar keer heen en weer voor het definitief is — soms 5 of 6 mailtjes.</div>
+          <textarea name="part_eerste_contact" placeholder="Beschrijf zo concreet mogelijk hoe het eerste contact verloopt..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel uur ben je per partij kwijt aan voorbereiding — en hoeveel daarvan is pure communicatie heen en weer?</div>
+          <span class="vraag-tag tag-geld">Tijdgeld</span>
+          <textarea name="part_tijd_voorbereiding" placeholder="bijv. Totaal zo'n 6-8 uur per partij. Waarvan ik schat dat 3-4 uur opgaat aan e-mails sturen, bellen en wachten op antwoord..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Heb je een vaste intake checklist of gaat dat op gevoel? Wat vergeet je weleens te vragen?</div>
+          <textarea name="part_checklist" placeholder="bijv. Ik heb een lijstje in mijn hoofd maar niets op papier. Ik vergeet soms te vragen of er kinderen zijn of wie de contactpersoon op de dag zelf is..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Stuur je een definitieve schriftelijke opdrachtbevestiging naar de klant — of loopt dat via losse e-mails?</div>
+          <span class="vraag-tag tag-kritiek">Juridisch risico</span>
+          <textarea name="part_bevestiging" placeholder="bijv. We sturen een offerte die de klant akkoord geeft per mail. Maar een formele opdrachtbevestiging met alle details? Die is er eigenlijk niet..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe bereken je de prijs van een partij — is dat een vast tarief of per geval?</div>
+          <span class="vraag-tag tag-geld">Marge</span>
+          <textarea name="part_prijscalculatie" placeholder="bijv. Ik schat het in op basis van ervaring en zet een bedrag in de offerte. Ik reken niet precies door wat het kost qua ingrediënten, personeel en uren..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Heb je weleens een partij gehad waarbij je achteraf verlies maakte — of minder verdiende dan je had gedacht?</div>
+          <span class="vraag-tag tag-geld">Marge</span>
+          <textarea name="part_verlies" placeholder="bijv. Een keer bij een bruiloft hebben we ondergeprijsd. Achteraf bleek de personeelsinzet veel meer dan verwacht. Ik weet eigenlijk niet precies wat elke partij echt oplevert..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Waar gaat het weleens mis in de communicatie met de klant?</div>
+          <textarea name="part_comm_mis" placeholder="bijv. Klant verwacht iets anders dan wat besproken is. Of info raakt kwijt in de mailstroom. Of last-minute wijzigingen die moeilijk te weigeren zijn..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">📅 Planning & Coördinatie</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe geef je de details van een partij door aan keuken, bediening en patisserie?</div>
+          <textarea name="part_doorsturen" placeholder="bijv. Mondeling in de briefing, of een Word-document dat ik print en uitdeel — maar dat is elke keer anders opgesteld..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er een vast document of briefing die iedereen krijgt — of improviseert elke afdeling op basis van mondelinge info?</div>
+          <textarea name="part_vast_document" placeholder="bijv. Nee, iedereen krijgt mondeling de info. Dat gaat soms mis omdat niet iedereen dezelfde informatie heeft gehoord..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe houd je overzicht als je meerdere partijen tegelijk in voorbereiding hebt?</div>
+          <textarea name="part_meerdere_partijen" placeholder="bijv. Ik houd het bij in mijn hoofd, of in een Excel-bestand. Dat loopt soms door elkaar..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Bij bruiloften — wat zijn de meest voorkomende last-minute wijzigingen en hoe ga je daarmee om?</div>
+          <textarea name="part_lastminute_bruiloft" placeholder="bijv. Aantallen die veranderen, iemand die toch vegetariër blijkt, tijdschema dat schuift. Dat accepteer ik altijd maar het kost veel aanpassingen intern..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🎊 Op de Dag Zelf & Evaluatie</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wie is het aanspreekpunt voor de klant op de dag zelf — en weet iedereen dat van tevoren?</div>
+          <textarea name="part_aanspreekpunt" placeholder="bijv. Altijd de eigenaar, maar als die bezig is in de keuken dan staat de bediening er alleen voor zonder bevoegdheden..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat gaat er het vaakst mis op de dag van een partij?</div>
+          <textarea name="part_fout_dag" placeholder="bijv. Timing van de gangen, een allergie die op het laatste moment doorgegeven wordt, personeel dat de afspraken niet kent..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Stuur je een evaluatie of bedankje naar de klant na afloop — en houd je bij wat goed en fout ging?</div>
+          <textarea name="part_evaluatie" placeholder="bijv. Nee, nooit. Soms een mailtje als het echt goed ging. We evalueren intern ook niet — we gaan direct door naar de volgende dag..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat kost jullie het meeste tijd in het hele partijproces — van eerste contact tot nazorg?</div>
+          <textarea name="part_tijdverlies" placeholder="bijv. De heen-en-weer communicatie met de klant, het intern afstemmen, de last-minute aanpassingen verwerken..."></textarea>
+        </div>
+      </div>
+
+      <div class="universeel-blok">
+        <span class="universeel-blok-titel">🌿 Twee universele vragen — altijd het meest waardevol</span>
+        <div class="vraag">
+          <div class="vraag-tekst">Beschrijf een partij die écht vlekkeloos verliep — wat maakte die anders dan de rest?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="part_goede_partij" placeholder="bijv. Een bedrijfsborrel waarbij de klant alles vooraf per mail had doorgegeven, het aantal niet wijzigde en we een vaste briefing hadden kunnen maken..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat hebben jullie de afgelopen twee jaar geprobeerd te verbeteren aan het partijproces — en waarom werkte dat niet?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="part_eerdere_pogingen" placeholder="bijv. We hebben geprobeerd een intakeformulier te sturen maar klanten vullen dat niet in. Of: we hebben een partijmap gemaakt maar niemand gebruikt die..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je één ding magisch kon oplossen morgen, wat zou dat zijn?</div>
+          <textarea name="part_magic" placeholder="Wees eerlijk en concreet..."></textarea>
+        </div>
+      </div>
+
+      <div class="module-nav">
+        <button class="btn-nav btn-prev" onclick="vorigeModule()">← Vorige</button>
+        <button class="btn-nav btn-next" onclick="volgendeModule()">Volgende afdeling →</button>
+      </div>
+    </div>
+
+    <!-- ══════ MODULE: RESERVERINGEN ══════ -->
+    <div class="module-content" id="module-reserveringen">
+      <div class="module-header">
+        <div class="module-header-top"><span class="module-num">05 —</span><h2 class="module-title">📞 Reserveringen & Klantcontact</h2></div>
+        <p class="module-sub">Boekingen, gemiste telefoontjes, allergieën, no-shows en reviews.</p>
+        <div class="tips-box">✏️ Schrijf zoals je praat.<br>🔢 Noem specifieke getallen — aantallen, minuten, percentages.<br>⚠️ Noem ook wat er weleens fout gaat.<br>💡 Er zijn geen foute antwoorden.</div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">📅 Reserveringen</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel reserveringen komen er gemiddeld per dag binnen en via welke kanalen?</div>
+          <div class="voorbeeld"><span class="voorbeeld-label">📝 Voorbeeld van een goed antwoord</span>Op een doordeweekse dag komen er zo'n 8 tot 12 nieuwe reserveringen binnen. In het weekend kan dat oplopen tot 25 of 30. Ze komen via GuestPlan (online boeken), via telefoon en via email. Telefoon is nog steeds het meest — ik schat 60% van alle reserveringen. Die moet ik dan handmatig invoeren in GuestPlan, dat kost per reservering 3 tot 5 minuten.</div>
+          <textarea name="res_aantallen_kanalen" placeholder="Hoeveel reserveringen, via welke kanalen, en hoe verhoudt dat zich?"></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als iemand belt en je bent bezig met iets anders — wat gebeurt er dan met die reservering? Hoeveel telefoontjes mis je per dag schat je?</div>
+          <span class="vraag-tag tag-geld">Omzetverlies</span>
+          <textarea name="res_gemiste_calls" placeholder="bijv. Dan gaat het naar voicemail maar mensen laten zelden een bericht achter. Ik schat dat we 3-5 telefoontjes per dag missen. Die gasten bellen ergens anders..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel tijd kost het verwerken van alle reserveringen per dag?</div>
+          <textarea name="res_verwerkingstijd" placeholder="bijv. Elke ochtend ben ik 30-45 minuten bezig met e-mails beantwoorden en telefoontjes handmatig invoeren..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel heen-en-weer contact is er gemiddeld per reservering — en bij welk type boeking loopt dat het meest op?</div>
+          <textarea name="res_heen_weer" placeholder="bijv. Simpele boekingen gaan in één keer. Maar groepen boven de 8 personen — dat zijn soms 5 mailtjes voor alles definitief is..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat zijn de meest voorkomende vragen van gasten voor hun bezoek — vragen die je steeds opnieuw beantwoordt?</div>
+          <textarea name="res_veelgestelde_vragen" placeholder="bijv. Parkeermogelijkheden, is er een kindermenu, hoe laat gaan jullie open, kunnen we een verjaardag vieren..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe ga je om met annuleringen en no-shows — en wat kost een no-show je gemiddeld?</div>
+          <textarea name="res_annuleringen" placeholder="bijv. We bellen altijd terug bij no-show. Annuleren kan tot 24u. Maar we handhaven dat niet altijd. Een no-show voor een tafel van 4 kost ons ongeveer €120..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">💬 Klantcontact & Allergieën</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Stuur je bevestigingen en herinneringen handmatig of automatisch — en wat valt er nu tussen wal en schip?</div>
+          <textarea name="res_bevestigingen" placeholder="bijv. Bevestigingen gaan automatisch via GuestPlan, maar reminders doe ik niet. Gasten vergeten weleens dat ze een tafel hebben..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe verzamel je allergieën en wensen van gasten — bij boeking of later? En hoe zorg je dat die info ook bij de keuken terechtkomt?</div>
+          <span class="vraag-tag tag-kritiek">Kritiek — veiligheid</span>
+          <textarea name="res_allergies" placeholder="bijv. Er is een veld bij de boeking maar gasten vullen dat zelden in. Ik bel dan soms na. En dan? Ik schrijf het in GuestPlan maar of de keuken dat ook ziet..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Krijg je weleens klachten — via welk kanaal en hoe handel je die af?</div>
+          <textarea name="res_klachten" placeholder="bijv. Soms via Google review, soms direct aan tafel, soms via e-mail. Er is geen vaste manier om dat bij te houden of op te volgen..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Vraag je gasten actief om een review na hun bezoek?</div>
+          <textarea name="res_reviews" placeholder="bijv. Nee, we vragen het niet actief. We hebben een kaartje met QR code maar weinig mensen doen het daadwerkelijk..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Houd je een lijst bij van vaste gasten met voorkeuren — en gebruik je die actief?</div>
+          <textarea name="res_vaste_gasten" placeholder="bijv. In GuestPlan staan notities maar die worden niet altijd bijgehouden. En als een nieuwe medewerker ze bedient, weet die de voorkeuren niet..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">📊 Overzicht & Planning</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe ver vooruit kun je zien hoe druk het wordt — en pas je je inkoop en personeelsplanning daarop aan?</div>
+          <textarea name="res_bezetting_vooruit" placeholder="bijv. Ik kan 2 weken vooruit kijken in het systeem. Maar walk-ins zijn altijd onverwacht. Personeelsplanning maak ik 1 week van tevoren..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er een rustige en een drukke periode — en doe je daar al iets proactief mee qua marketing of staffing?</div>
+          <textarea name="res_seizoen" placeholder="bijv. December is altijd extreem druk. We nemen extra personeel aan maar die planning start pas laat. In januari is het stil maar we doen niets om gasten te trekken..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat kost jou het meeste tijd per dag in reserveringen en klantcontact?</div>
+          <textarea name="res_tijdverlies" placeholder="bijv. Telefonische reserveringen handmatig invoeren, e-mails beantwoorden die eigenlijk te voorkomen zijn, no-shows nabellen..."></textarea>
+        </div>
+      </div>
+
+      <div class="universeel-blok">
+        <span class="universeel-blok-titel">🌿 Twee universele vragen — altijd het meest waardevol</span>
+        <div class="vraag">
+          <div class="vraag-tekst">Beschrijf een week waarbij reserveringen en klantcontact écht soepel liep — wat maakte die week anders?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="res_goede_week" placeholder="bijv. We hadden een rustige mix van online boekingen, weinig telefoontjes en geen no-shows. Alles stond twee dagen van tevoren al vast..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat hebben jullie de afgelopen twee jaar geprobeerd te verbeteren aan reserveringen — en waarom werkte dat niet?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="res_eerdere_pogingen" placeholder="bijv. We hebben online boeken geprobeerd maar veel gasten bellen toch. We hebben een herinnering ingesteld maar gasten klagen dat ze te veel berichten krijgen..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je één ding magisch kon oplossen morgen, wat zou dat zijn?</div>
+          <textarea name="res_magic" placeholder="Wees eerlijk en concreet..."></textarea>
+        </div>
+      </div>
+
+      <div class="module-nav">
+        <button class="btn-nav btn-prev" onclick="vorigeModule()">← Vorige</button>
+        <button class="btn-nav btn-next" onclick="volgendeModule()">Volgende afdeling →</button>
+      </div>
+    </div>
+
+    <!-- ══════ MODULE: BEDRIJFSVOERING ══════ -->
+    <div class="module-content" id="module-bedrijfsvoering">
+      <div class="module-header">
+        <div class="module-header-top"><span class="module-num">06 —</span><h2 class="module-title">📊 Bedrijfsvoering & Cijfers</h2></div>
+        <p class="module-sub">Financiën, marge per avond, personeel, strategie — en wat je niet weet maar wel zou moeten weten.</p>
+        <div class="tips-box">✏️ Schrijf zoals je praat.<br>🔢 Noem specifieke getallen — uren, percentages, bedragen.<br>⚠️ Noem ook waar je geld verliest zonder dat je precies weet waarom.<br>💡 Er zijn geen foute antwoorden.</div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">💰 Financieel Overzicht</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe houd je de omzet bij — dagelijks, wekelijks, maandelijks?</div>
+          <div class="voorbeeld"><span class="voorbeeld-label">📝 Voorbeeld van een goed antwoord</span>Elke avond check ik de dagomzet in het kassasysteem. Dat vergelijk ik globaal met de week ervoor — in mijn hoofd of soms in Excel. Maar een echt overzicht per maand maak ik pas als de boekhouder erom vraagt. Ik weet dus wel hoe we het vandaag deden, maar niet hoe we er op maandbasis voor staan.</div>
+          <textarea name="bv_omzet_bijhouden" placeholder="Beschrijf zo concreet mogelijk hoe je nu naar je cijfers kijkt..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Weet je welke avond van de week het meest winstgevend is — niet qua omzet maar qua marge na kosten?</div>
+          <span class="vraag-tag tag-inzicht">Scherpste vraag</span>
+          <textarea name="bv_winstgevende_avond" placeholder="bijv. Vrijdag en zaterdag zijn het drukst qua omzet, maar of dat ook de meest winstgevende avonden zijn? Dat weet ik eigenlijk niet. Ik reken die marge nooit uit..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wanneer heb je voor het laatst je menukaart of prijzen aangepast op basis van je marges — niet op basis van gevoel?</div>
+          <span class="vraag-tag tag-geld">Data-driven beslissingen</span>
+          <textarea name="bv_menu_prijzen" placeholder="bijv. Vorig jaar hebben we de prijzen verhoogd maar dat was op gevoel en op basis van wat de buurt deed. Of de marge op elk gerecht goed is weet ik eigenlijk niet..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Heb je altijd een actueel beeld van wat er binnenkomt en uitgaat — of kom je dat pas weken later te weten?</div>
+          <textarea name="bv_cashflow" placeholder="bijv. Nee, ik weet pas echt hoe het staat als de boekhouder belt of als ik zelf in Excel ga zitten. Dat is altijd met vertraging..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoeveel tijd kost de administratie per week — en wat doet het meeste pijn?</div>
+          <textarea name="bv_admin_tijd" placeholder="bijv. Ik schat 5-7 uur per week. Facturen verwerken, bonnetjes sorteren, roosters uitwerken voor de boekhouder, BTW bijhouden..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Mis je informatie die je eigenlijk altijd snel bij de hand wilt hebben — maar die je nu niet hebt?</div>
+          <textarea name="bv_gemiste_info" placeholder="bijv. Ik wil altijd weten wat de food cost is maar ik bereken dat nooit echt. Of: ik wil de bezetting per dag van de week zien maar dat zit niet in een overzicht..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">👥 Personeel & Communicatie</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe communiceer je met het team — en wat gaat er structureel langs mensen heen?</div>
+          <textarea name="bv_team_comm" placeholder="bijv. We hebben een WhatsApp groep. Briefings doen we mondeling voor de service. Er is geen vast systeem — sommige medewerkers missen regelmatig informatie..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe worden roosters gemaakt en hoeveel tijd kost dat — inclusief de aanpassingen daarna?</div>
+          <textarea name="bv_roosters" placeholder="bijv. Ik maak het zelf in Excel, kost me 1,5 uur per week. Dan stuur ik het via WhatsApp. Daarna komen er altijd nog 3-4 ruilverzoeken..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Is er een vaste manier om feedback te geven aan medewerkers — of gaat dat alleen als er iets misgaat?</div>
+          <textarea name="bv_feedback" placeholder="bijv. Nee, dat gaat ad hoc. Alleen als er iets echt fout gaat. Positieve feedback geef ik bijna nooit gestructureerd..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Hoe weet je of iedereen weet wat er die dag van hen verwacht wordt?</div>
+          <textarea name="bv_verwachtingen" placeholder="bijv. Via de briefing, maar niet iedereen is altijd aanwezig bij het begin. Soms glipt er informatie doorheen..."></textarea>
+        </div>
+      </div>
+
+      <div class="vraag-sectie">
+        <div class="sectie-titel">🚀 Strategie, Groei & Kwetsbaarheid</div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat zijn de drie grootste uitdagingen van het restaurant op dit moment?</div>
+          <textarea name="bv_uitdagingen" placeholder="bijv. 1. Personeel vinden en houden. 2. Marges staan onder druk door stijgende inkoopprijzen. 3. No-shows kosten meer dan we denken..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Waar verlies je nu geld zonder dat je precies weet waarom — en hoe lang is dat al zo?</div>
+          <textarea name="bv_geldverlies" placeholder="bijv. Ik vermoed dat de verspilling in de keuken hoog is maar ik meet het niet. No-shows kosten meer dan ik denk. Bepaalde gerechten hebben waarschijnlijk een negatieve marge..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je er drie maanden tussenuit zou gaan — wat zou er dan mis gaan en wie zou het opvangen?</div>
+          <span class="vraag-tag tag-kritiek">Kwetsbaarheid</span>
+          <textarea name="bv_afhankelijkheid" placeholder="bijv. Eerlijk gezegd zou veel in het honderd lopen. De inkoop, de leverancierscontacten, de financiën — dat zit allemaal in mijn hoofd of op mijn telefoon..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Zijn er taken die nu door mensen worden gedaan die makkelijk automatisch zouden kunnen?</div>
+          <textarea name="bv_automatable" placeholder="bijv. Reserveringsbevestigingen, herinneringen sturen, het weekrooster doorsturen, omzetrapport opstellen..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat zou jou als eigenaar het meeste rust geven als het automatisch geregeld was?</div>
+          <textarea name="bv_rust" placeholder="bijv. Als ik elke maandagochtend automatisch een overzicht van de vorige week zou krijgen: omzet, bezetting en food cost, zonder dat ik er zelf voor in Excel moet duiken..."></textarea>
+        </div>
+      </div>
+
+      <div class="universeel-blok">
+        <span class="universeel-blok-titel">🌿 Twee universele vragen — altijd het meest waardevol</span>
+        <div class="vraag">
+          <div class="vraag-tekst">Beschrijf een maand of periode waarbij het bedrijf écht goed draaide — wat was er toen anders?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="bv_goede_periode" placeholder="bijv. Vorig jaar in september had ik een vaste ploeg, weinig ziekte, goede bezetting en voor het eerst inzicht in mijn wekelijkse cijfers. Dat gaf rust..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Wat heb je de afgelopen twee jaar geprobeerd te verbeteren in de bedrijfsvoering — en waarom werkte dat niet of onvoldoende?</div>
+          <span class="vraag-tag tag-universeel">Universeel inzicht</span>
+          <textarea name="bv_eerdere_pogingen" placeholder="bijv. We hebben een nieuw kassasysteem aangeschaft maar de koppeling met de boekhouding werkt niet goed. Of: ik heb geprobeerd wekelijks cijfers bij te houden maar dat houdt na 3 weken op..."></textarea>
+        </div>
+        <div class="vraag">
+          <div class="vraag-tekst">Als je één ding magisch kon oplossen voor het hele bedrijf, wat zou dat zijn?</div>
+          <textarea name="bv_magic" placeholder="Wees eerlijk en concreet — dit is de meest waardevolle vraag van de hele scan..."></textarea>
+        </div>
+      </div>
+
+      <div class="module-nav">
+        <button class="btn-nav btn-prev" onclick="vorigeModule()">← Vorige</button>
+        <button class="btn-nav btn-submit-final" onclick="verstuurAlles()">✓ Verstuur alle antwoorden</button>
+      </div>
+    </div>
+
+  </div><!-- /scan-body -->
+</div><!-- /scan-screen -->
+
+<!-- SENDING OVERLAY -->
+<div id="sending-overlay">
+  <div class="sending-spinner"></div>
+  <div class="sending-title">Antwoorden verwerken...</div>
+  <div class="sending-sub">Even geduld — alle modules worden opgeslagen</div>
+</div>
+
+<!-- ══════════ RESULT SCREEN ══════════ -->
+<div id="result-screen">
+  <div class="result-header">
+    <div class="logo" style="margin-bottom:1.5rem">Niels<em style="color:var(--accent)">Automatiseert</em></div>
+    <h2>✦ Automatiseringsplan klaar</h2>
+    <p>Op basis van alle ingevulde afdelingen hebben we een eerste analyse gemaakt. <span id="result-restaurant-naam"></span></p>
+  </div>
+  <div class="result-modules" id="result-modules"></div>
+  <button class="btn-print" onclick="window.print()">↓ Opslaan als PDF</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG — vul hier je SheetBest URLs in
+// ─────────────────────────────────────────────
+const SHEETS = {
+  keuken:          'https://api.sheetbest.com/sheets/JOUW-ID/tabs/Keuken',
+  patisserie:      'https://api.sheetbest.com/sheets/JOUW-ID/tabs/Patisserie',
+  bediening:       'https://api.sheetbest.com/sheets/JOUW-ID/tabs/Bediening',
+  partijen:        'https://api.sheetbest.com/sheets/JOUW-ID/tabs/Partijen',
+  reserveringen:   'https://api.sheetbest.com/sheets/JOUW-ID/tabs/Reserveringen',
+  bedrijfsvoering: 'https://api.sheetbest.com/sheets/JOUW-ID/tabs/Bedrijfsvoering',
+};
+
+const ALLE_MODULES = [
+  { id: 'keuken',          label: 'Keuken',          emoji: '👨‍🍳' },
+  { id: 'patisserie',      label: 'Patisserie',      emoji: '🍰' },
+  { id: 'bediening',       label: 'Bediening',       emoji: '🍽️' },
+  { id: 'partijen',        label: 'Partijen',        emoji: '🎉' },
+  { id: 'reserveringen',   label: 'Reserveringen',   emoji: '📞' },
+  { id: 'bedrijfsvoering', label: 'Bedrijfsvoering', emoji: '📊' },
+];
+
+let actieveModules = [];
+let huidigIndex = 0;
+let restaurantNaam = '';
+
+// ── SETUP ──
+function checkSetup() {
+  const naam = document.getElementById('restaurant-naam').value.trim();
+  const checked = document.querySelectorAll('.modules-grid input:checked').length;
+  document.getElementById('btn-start').disabled = !(naam && checked > 0);
+}
+
+function startScan() {
+  restaurantNaam = document.getElementById('restaurant-naam').value.trim();
+  actieveModules = ALLE_MODULES.filter(m => document.getElementById('mod-' + m.id)?.checked).map(m => m.id);
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('scan-screen').style.display = 'block';
+  document.getElementById('restaurant-naam-display').textContent = restaurantNaam;
+  bouwTabs();
+  pasToeModuleNav();
+  toonModule(0);
+}
+
+// ── NAVIGATIE ──
+function bouwTabs() {
+  const tabsEl = document.getElementById('module-tabs');
+  tabsEl.innerHTML = actieveModules.map((id, i) => {
+    const mod = ALLE_MODULES.find(m => m.id === id);
+    return `<button class="module-tab" id="tab-${id}" onclick="toonModule(${i})">${mod.emoji} ${mod.label}</button>`;
+  }).join('');
+}
+
+function toonModule(index) {
+  huidigIndex = index;
+  document.querySelectorAll('.module-content').forEach(el => el.classList.remove('active'));
+  const moduleId = actieveModules[index];
+  document.getElementById('module-' + moduleId).classList.add('active');
+  document.querySelectorAll('.module-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + moduleId)?.classList.add('active');
+  const pct = Math.round((index / actieveModules.length) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${index + 1} / ${actieveModules.length}`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  pasToeModuleNav();
+}
+
+function pasToeModuleNav() {
+  actieveModules.forEach((id, i) => {
+    const nav = document.querySelector(`#module-${id} .module-nav`);
+    if (!nav) return;
+    const volgendeBtn = nav.querySelector('.btn-next');
+    const verstuurBtn = nav.querySelector('.btn-submit-final');
+    const prevBtn = nav.querySelector('.btn-prev');
+    if (i === actieveModules.length - 1) {
+      if (volgendeBtn) volgendeBtn.style.display = 'none';
+      if (verstuurBtn) verstuurBtn.style.display = 'inline-flex';
+    } else {
+      if (volgendeBtn) volgendeBtn.style.display = 'inline-flex';
+      if (verstuurBtn) verstuurBtn.style.display = 'none';
+    }
+    if (prevBtn) prevBtn.style.display = i === 0 ? 'none' : 'inline-flex';
+  });
+}
+
+function volgendeModule() {
+  const huidigId = actieveModules[huidigIndex];
+  document.getElementById('tab-' + huidigId)?.classList.add('done');
+  if (huidigIndex < actieveModules.length - 1) toonModule(huidigIndex + 1);
+}
+
+function vorigeModule() {
+  if (huidigIndex > 0) toonModule(huidigIndex - 1);
+}
+
+// ── DATA & SUBMIT ──
+function verzamelModuleData(moduleId) {
+  const el = document.getElementById('module-' + moduleId);
+  const data = {
+    datum: new Date().toLocaleDateString('nl-NL') + ' ' + new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'}),
+    restaurant: restaurantNaam,
+    module: moduleId,
+  };
+  el.querySelectorAll('textarea, input[type="text"], input[type="number"], input[type="email"]').forEach(f => {
+    if (f.name) data[f.name] = f.value.trim();
+  });
+  return data;
+}
+
+async function stuurNaarSheet(moduleId, data) {
+  const url = SHEETS[moduleId];
+  if (!url || url.includes('JOUW-ID')) { console.log(`[DEV] ${moduleId}:`, data); return; }
+  try {
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  } catch(e) { console.warn('Sheet sync mislukt voor', moduleId, e); }
+}
+
+async function verstuurAlles() {
+  const huidigId = actieveModules[huidigIndex];
+  document.getElementById('tab-' + huidigId)?.classList.add('done');
+  document.getElementById('sending-overlay').classList.add('active');
+  const alleData = {};
+  for (const moduleId of actieveModules) {
+    const data = verzamelModuleData(moduleId);
+    alleData[moduleId] = data;
+    await stuurNaarSheet(moduleId, data);
+    await new Promise(r => setTimeout(r, 200));
+  }
+  bouwResultaat(alleData);
+  document.getElementById('sending-overlay').classList.remove('active');
+  document.getElementById('scan-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  document.getElementById('result-restaurant-naam').textContent = `De analyse hieronder is gebaseerd op de input van ${restaurantNaam}.`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── ANALYSE ENGINE ──
+function bevat(tekst, ...woorden) {
+  if (!tekst) return false;
+  const t = tekst.toLowerCase();
+  return woorden.some(w => t.includes(w.toLowerCase()));
+}
+
+function analyseModule(moduleId, data) {
+  const aanbevelingen = [];
+  const add = (prio, cls, titel, beschr) => aanbevelingen.push({ prio, cls, titel, beschr });
+
+  if (moduleId === 'keuken') {
+    if (bevat(data.keuken_allergie_service, 'mondeling', 'post-it', 'briefje', 'roept', 'soms mis'))
+      add('HOOG', 'hoog', '⚠️ Allergie-communicatie digitaliseren', 'Allergieën gaan nu mondeling of via briefjes — hoog risico. Koppeling reserveringssysteem → keukenbeeldscherm elimineert dit volledig.');
+    if (bevat(data.keuken_miscommunicatie, 'mis', 'fout', 'vergeten', 'over het hoofd'))
+      add('HOOG', 'hoog', '💬 Digitaal keuken-bediening communicatiesysteem', 'Informatie gaat verloren tussen keuken en bediening. Een live keukenscherm met orderinfo en bijzonderheden per tafel voorkomt dit.');
+    if (bevat(data.keuken_kennisborging, 'hoofd', 'niet opgeschreven', 'geen receptenboek', 'kunnen niet overnemen'))
+      add('HOOG', 'hoog', '📚 Kennis uit de hoofden halen', 'Cruciale kennis zit in het hoofd van de chef. Digitaal receptenboek + bereidingsprocedures maakt het restaurant minder kwetsbaar bij uitval.');
+    if (bevat(data.keuken_leveranciers, 'bellen', 'elke dag', 'elke ochtend', 'handmatig'))
+      add('MID', 'mid', '📞 Leverancierscontact automatiseren', 'Dagelijks bellen met leveranciers kost 20-30 minuten per dag. Digitale bestelportalen + vaste bestelmomenten reduceren dit tot minuten.');
+    if (bevat(data.keuken_mep_lijst, 'opnieuw', 'elke ochtend', 'hoofd', 'niet opgeslagen'))
+      add('MID', 'mid', '📋 Automatische mise en place calculator', 'Elke ochtend opnieuw de mise en place berekenen kost 15-20 minuten. Automatisch op basis van reserveringsaantallen en historische data.');
+    if (bevat(data.keuken_verspilling, 'gooi', 'weg', 'te veel', 'meten niet'))
+      add('MID', 'mid', '📉 Verspillingsregistratie en inkoopoptimalisatie', 'Verspilling wordt niet gemeten, dus ook niet gestuurd. 30 seconden per dag registreren leidt na 4 weken tot concrete inkoopbesparingen.');
+  }
+
+  if (moduleId === 'patisserie') {
+    if (bevat(data.pat_deadline_intern, 'te laat', 'niet op tijd', 'via eigenaar', 'mondeling') || bevat(data.pat_voorbereiding_aantallen, 'niet precies', 'ochtend zelf', 'mondeling', 'briefje'))
+      add('HOOG', 'hoog', '🍰 Automatisch patisserie-briefing bij boeking', 'Aantallen en speciale verzoeken komen te laat of onbetrouwbaar door. Automatisch: bij bevestiging boeking → melding naar patisserie met aantallen en wensen.');
+    if (bevat(data.pat_kennisborging, 'hoofd', 'niet opgeschreven', 'kunnen niet overnemen', 'geen procedure'))
+      add('HOOG', 'hoog', '📚 Patisserie recepten en procedures documenteren', 'Specialiteiten en bereidingstijden zitten in het hoofd van de patissier. Bij uitval staat de patisserie stil. Digitaal receptenboek is essentieel.');
+    if (bevat(data.pat_grote_groepen, 'improviseer', 'per keer', 'geen vaste', 'geen checklist'))
+      add('MID', 'mid', '✅ Standaard partij-checklist voor patisserie', 'Per type event (bruiloft, verjaardag, bedrijfsborrel) een vaste digitale checklist zodat niets wordt vergeten.');
+    if (bevat(data.pat_miscommunicatie, 'mis', 'fout', 'niet klopte', 'vergeten'))
+      add('MID', 'mid', '📋 Gestandaardiseerde briefing per partij', 'Bij elke bevestigde partij automatisch een briefing naar patisserie met aantallen, dieetwensen en deadlines vanuit één formulier.');
+  }
+
+  if (moduleId === 'bediening') {
+    if (bevat(data.bed_allergie_onthouden, 'briefje', 'zak', 'mondeling', 'onthouden') || bevat(data.bed_allergie_keuken, 'controleer niet', 'mondeling'))
+      add('HOOG', 'hoog', '⚠️ Allergie-status zichtbaar per tafel tijdens service', 'Allergieën worden onthouden via briefjes in de zak — hoog risico. Digitale tafelkaart met live allergiestatus per gast is de oplossing.');
+    if (bevat(data.bed_klacht_tafel, 'eigenaar', 'niet zelf', 'geen bevoegdheid', 'wachten'))
+      add('HOOG', 'hoog', '⚡ Bevoegdheidsmatrix voor klachtenafhandeling', 'Bediening moet bij elke klacht de eigenaar halen — traag en onprofessioneel. Duidelijke bevoegdheidsmatrix: tot €X mag bediening zelf beslissen.');
+    if (bevat(data.bed_onboarding, 'maanden', 'geen document', 'niet opgeschreven', 'leren ze pas'))
+      add('HOOG', 'hoog', '📖 Digitaal onboarding-document voor nieuw personeel', 'Nieuwe medewerkers leren alles informeel en langzaam. Een digitale gids met werkwijze, stamgasten, allergieprocedure en keukenafspraken halveert de inwerkperiode.');
+    if (bevat(data.bed_miscommunicatie, 'mis', 'fout', 'verkeerd', 'over het hoofd'))
+      add('HOOG', 'hoog', '🔗 Geïntegreerde keuken-bediening communicatie', 'Miscommunicatie kost gastvriendelijkheid en kan bij allergieën gevaarlijk zijn. Digitaal systeem vervangt mondeling doorgeven.');
+    if (bevat(data.bed_briefing, 'niet altijd', 'zelf lezen', 'geen vaste', 'soms niet'))
+      add('MID', 'mid', '📱 Dagelijkse digitale servicebriefing', 'Automatisch dagbriefing voor service: bijzonderheden per tafel, VIP-gasten, menu-aanpassingen — leesbaar op elk apparaat, ook de telefoon.');
+  }
+
+  if (moduleId === 'partijen') {
+    if (bevat(data.part_tijd_voorbereiding, 'uur', 'communicatie', 'heen en weer') || bevat(data.part_heen_weer, '5', '6', '10', 'mailtjes'))
+      add('HOOG', 'hoog', '📧 Automatische partij-intake flow', 'Gemiddeld 5-10 mailtjes per partij + uren aan communicatie. Digitaal intakeformulier + automatische bevestiging + offerte template halveert dit.');
+    if (bevat(data.part_verlies, 'verlies', 'minder', 'niet precies', 'weet niet wat het oplevert'))
+      add('HOOG', 'hoog', '💰 Partijcalculatie per type event', 'Prijzen worden geschat, niet berekend. Vaste calculatietool per type partij (bruiloft, bedrijfsborrel, verjaardag) maakt marge direct zichtbaar voor accordering.');
+    if (bevat(data.part_bevestiging, 'losse mails', 'geen formele', 'niet echt', 'akkoord per mail'))
+      add('HOOG', 'hoog', '📄 Formele opdrachtbevestiging met alle afspraken', 'Afspraken lopen via losse mails — juridisch kwetsbaar. Standaard opdrachtdocument met alle details dat digitaal getekend wordt.');
+    if (bevat(data.part_vast_document, 'nee', 'mondeling', 'anders', 'niet'))
+      add('HOOG', 'hoog', '📋 Automatisch gegenereerde partijbriefing', 'Bij elke bevestigde partij automatisch één briefingdocument naar keuken, bediening en patisserie — vanuit hetzelfde intakeformulier.');
+    if (bevat(data.part_evaluatie, 'nee', 'nooit', 'soms', 'intern niet'))
+      add('LAAG', 'laag', '⭐ Automatisch follow-up en review na partij', 'Na elke partij automatisch een bedankmail + review-verzoek. Meer reviews = meer zichtbaarheid = meer boekingen.');
+  }
+
+  if (moduleId === 'reserveringen') {
+    if (bevat(data.res_gemiste_calls, 'voicemail', 'missen', 'bellen ergens anders', '3', '4', '5'))
+      add('HOOG', 'hoog', '📞 Gemiste telefoontjes opvangen', 'Per dag worden er meerdere reserveringen gemist via de telefoon. Automatisch terugbelsysteem of WhatsApp Business vangt deze op en converteert ze alsnog.');
+    if (bevat(data.res_aantallen_kanalen, 'telefoon', 'handmatig', 'invoeren', '60%', '50%'))
+      add('HOOG', 'hoog', '⌨️ Telefonische reserveringen automatiseren', 'Meer dan de helft van reserveringen wordt handmatig ingevoerd. Online reserveren met directe koppeling aan het systeem elimineert dit.');
+    if (bevat(data.res_bevestigingen, 'handmatig', 'niet', 'geen reminder') || bevat(data.res_annuleringen, 'no-show', 'kost', 'verlies'))
+      add('HOOG', 'hoog', '📨 Automatische bevestiging + herinnering = minder no-shows', 'Geen reminders = meer no-shows. Automatisch: bevestiging bij boeking + herinnering 24u van tevoren reduceren no-shows 40-60%.');
+    if (bevat(data.res_allergies, 'zelden', 'bel', 'vullen niet in', 'keuken ziet'))
+      add('HOOG', 'hoog', '🌿 Allergieën verplicht verzamelen bij boeking', 'Gasten geven allergieën zelden op. Verplicht veld + automatisch doorsturen naar keuken bij bevestiging sluit het gat tussen reservering en service.');
+    if (bevat(data.res_veelgestelde_vragen, 'parkeer', 'kinderen', 'openingstijden', 'herhaal'))
+      add('MID', 'mid', '💬 Automatische FAQ-beantwoording', 'Dezelfde vragen komen steeds terug. WhatsApp Business + automatische antwoorden op de 10 meest gestelde vragen bespaart 30-60 min per dag.');
+    if (bevat(data.res_reviews, 'nee', 'niet actief', 'weinig', 'kaartje maar'))
+      add('MID', 'mid', '⭐ Automatisch review-verzoek na bezoek', 'Actief vragen om reviews levert 3x meer reviews op. Automatisch sms of e-mail de dag na het bezoek met directe link naar Google.');
+  }
+
+  if (moduleId === 'bedrijfsvoering') {
+    if (bevat(data.bv_winstgevende_avond, 'niet', 'weet niet', 'reken nooit', 'nooit uitgerekend'))
+      add('HOOG', 'hoog', '📊 Marge per avond en per gerecht inzichtelijk maken', 'Drukste avond ≠ meest winstgevende avond. Dashboard met food cost en personeelkosten per service maakt dit zichtbaar en aanpakbaar.');
+    if (bevat(data.bv_afhankelijkheid, 'hoofd', 'telefoon', 'ik alleen', 'zou mis gaan', 'honderd lopen'))
+      add('HOOG', 'hoog', '⚠️ Bedrijfskritieke kennis documenteren', 'Het restaurant is te afhankelijk van de eigenaar. Leverancierscontacten, inloggegevens, procedures — alles digitaal vastleggen zodat iemand anders het kan overnemen.');
+    if (bevat(data.bv_cashflow, 'boekhouder', 'niet', 'vertraging', 'pas als'))
+      add('HOOG', 'hoog', '📈 Automatisch wekelijks financieel overzicht', 'Financiën zijn pas weken later zichtbaar. Automatisch rapport elke maandag: omzet, kosten, bezetting en food cost vergeleken met vorige week.');
+    if (bevat(data.bv_roosters, 'excel', 'whatsapp', 'ruil', 'aanpassingen', '1,5 uur'))
+      add('HOOG', 'hoog', '📅 Digitale roosterplanning + automatische communicatie', 'Roosters in Excel + WhatsApp kost 1-2 uur per week + aanpassingen. Planningssoftware met zelfroostering en automatische notificaties.');
+    if (bevat(data.bv_menu_prijzen, 'gevoel', 'niet op basis van', 'weet niet precies', 'negatieve marge'))
+      add('MID', 'mid', '🍽️ Menukaart-marge analyse', 'Prijzen worden bepaald op gevoel. Eénmalige food cost berekening per gerecht onthult welke gerechten geld kosten en welke de meeste marge opleveren.');
+    if (bevat(data.bv_admin_tijd, '5', '6', '7', 'uur', 'facturen', 'bonnetjes'))
+      add('MID', 'mid', '🧾 Automatische boekhoudkoppeling', 'Meer dan 4 uur per week administratie is te vermijden. Koppeling kassasysteem → boekhouding + automatische factuurverwerking bespaart uren.');
+    if (bevat(data.bv_team_comm, 'whatsapp', 'mondeling', 'langs mensen heen', 'missen'))
+      add('MID', 'mid', '💬 Centrale teamcommunicatie tool', 'WhatsApp voor zakelijke communicatie is onoverzichtelijk. App met dagbriefings, roosterupdates en leesbevestigingen zorgt dat info iedereen bereikt.');
+  }
+
+  if (aanbevelingen.length === 0) {
+    add('LAAG', 'laag', '✅ Baseline monitoring opzetten', 'Geen acute pijnpunten gevonden. We raden aan een baseline-meting op te zetten om langetermijn verbetermogelijkheden te identificeren.');
+  }
+  return aanbevelingen;
+}
+
+function bouwResultaat(alleData) {
+  const container = document.getElementById('result-modules');
+  container.innerHTML = '';
+  actieveModules.forEach(moduleId => {
+    const mod = ALLE_MODULES.find(m => m.id === moduleId);
+    const data = alleData[moduleId] || {};
+    const aanbevelingen = analyseModule(moduleId, data);
+    const el = document.createElement('div');
+    el.className = 'result-module';
+    el.innerHTML = `
+      <div class="result-module-header">
+        <span class="result-module-emoji">${mod.emoji}</span>
+        <div class="result-module-title">${mod.label}</div>
+        <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)">${aanbevelingen.length} aanbeveling${aanbevelingen.length !== 1 ? 'en' : ''}</span>
+      </div>
+      ${aanbevelingen.map(a => `
+        <div class="aanbeveling ${a.cls}">
+          <span class="prio-badge">${a.prio}</span>
+          <div><strong style="font-size:0.83rem">${a.titel}</strong><br><span style="font-size:0.78rem;opacity:0.85">${a.beschr}</span></div>
+        </div>`).join('')}
+    `;
+    container.appendChild(el);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makelaar Automatisering Scan — Niels Automatiseert</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root { --ink:#0f0e0c; --paper:#f5f2ec; --accent:#c84b2f; --accent2:#2563eb; --muted:#7a7570; --line:#ddd9d0; --green:#16a05a; --surface:#fff; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  .progress-bar{height:3px;background:var(--line);position:sticky;top:0;z-index:100;}
+  .progress-fill{height:100%;background:var(--accent);transition:width 0.4s ease;width:0%;}
+  header{border-bottom:2px solid var(--ink);padding:1.8rem 3rem;display:flex;justify-content:space-between;align-items:center;}
+  .logo{font-family:'DM Serif Display',serif;font-size:1.4rem;letter-spacing:-0.02em;}
+  .logo span{color:var(--accent);}
+  .tagline{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+  main{max-width:800px;margin:0 auto;padding:4rem 2rem 8rem;}
+  .intro{margin-bottom:5rem;}
+  .intro-label{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:1rem;}
+  .intro h1{font-family:'DM Serif Display',serif;font-size:clamp(2rem,5vw,3.2rem);line-height:1.1;letter-spacing:-0.03em;margin-bottom:1.2rem;}
+  .intro h1 em{font-style:italic;color:var(--accent);}
+  .intro p{font-size:0.95rem;color:var(--muted);line-height:1.75;max-width:560px;}
+  .time-badge{display:inline-flex;align-items:center;gap:0.4rem;margin-top:1.2rem;padding:0.35rem 0.85rem;border:1px solid var(--line);border-radius:2rem;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);}
+  .section{margin-bottom:4rem;opacity:0;transform:translateY(20px);transition:opacity 0.5s ease,transform 0.5s ease;}
+  .section.visible{opacity:1;transform:none;}
+  .section-header{margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid var(--ink);}
+  .section-top{display:flex;align-items:baseline;gap:1rem;margin-bottom:0.3rem;}
+  .section-num{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--accent);letter-spacing:0.1em;}
+  .section-title{font-family:'DM Serif Display',serif;font-size:1.4rem;}
+  .section-desc{font-size:0.82rem;color:var(--muted);line-height:1.6;}
+  .question{margin-bottom:2.2rem;}
+  .question .qlabel{display:block;font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;line-height:1.5;}
+  .req{color:var(--accent);}
+  .hint{font-size:0.76rem;color:var(--muted);margin-bottom:0.7rem;font-style:italic;line-height:1.5;display:block;}
+  input[type="text"],input[type="email"],input[type="url"],input[type="number"],select,textarea{width:100%;padding:0.7rem 1rem;border:1.5px solid var(--line);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--ink);transition:border-color 0.2s;outline:none;appearance:none;border-radius:0;}
+  input:focus,select:focus,textarea:focus{border-color:var(--ink);}
+  textarea{resize:vertical;min-height:80px;}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230f0e0c' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;padding-right:2.5rem;cursor:pointer;}
+  .options-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.4rem;}
+  .options-grid.cols2{grid-template-columns:repeat(2,1fr);}
+  .options-grid.cols1{grid-template-columns:1fr;}
+  .option-item{position:relative;}
+  .option-item input[type="radio"],.option-item input[type="checkbox"]{position:absolute;opacity:0;width:0;}
+  .option-item label{display:flex;align-items:flex-start;gap:0.6rem;padding:0.6rem 0.85rem;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-size:0.83rem;font-weight:400;transition:all 0.15s;line-height:1.45;margin:0;}
+  .option-item label::before{content:'';width:13px;height:13px;border:1.5px solid var(--line);flex-shrink:0;transition:all 0.15s;border-radius:2px;margin-top:2px;}
+  .option-item input[type="radio"]+label::before{border-radius:50%;}
+  .option-item input:checked+label{border-color:var(--ink);background:var(--ink);color:var(--paper);}
+  .option-item input:checked+label::before{background:var(--accent);border-color:var(--accent);}
+  .range-wrap{display:flex;align-items:center;gap:1rem;}
+  input[type="range"]{flex:1;-webkit-appearance:none;height:3px;background:var(--line);outline:none;border:none;padding:0;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--ink);border-radius:50%;cursor:pointer;}
+  input[type="range"]::-webkit-slider-thumb:hover{background:var(--accent);}
+  .range-val{font-family:'DM Mono',monospace;font-size:0.85rem;min-width:45px;text-align:right;color:var(--accent);font-weight:500;}
+  .submit-zone{margin-top:4rem;padding-top:3rem;border-top:2px solid var(--ink);}
+  .submit-zone h2{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:0.5rem;}
+  .submit-zone p{color:var(--muted);font-size:0.88rem;margin-bottom:2rem;line-height:1.6;}
+  .btn-submit{display:inline-flex;align-items:center;gap:0.75rem;padding:1rem 2.5rem;background:var(--ink);color:var(--paper);border:none;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:500;cursor:pointer;transition:all 0.2s;}
+  .btn-submit:hover{background:var(--accent);}
+  .btn-submit .arrow{transition:transform 0.2s;}
+  .btn-submit:hover .arrow{transform:translateX(4px);}
+  #result-panel{display:none;margin-top:3rem;border:2px solid var(--green);padding:2rem;background:white;animation:fadeUp 0.5s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  #result-panel h3{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:1.5rem;}
+  .result-section{margin-bottom:1.8rem;}
+  .result-section h4{font-family:'DM Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:0.75rem;}
+  .auto-card{display:flex;gap:0.75rem;padding:0.8rem 1rem;margin-bottom:0.4rem;border-left:3px solid var(--accent);background:var(--paper);font-size:0.83rem;line-height:1.5;}
+  .prio{font-family:'DM Mono',monospace;font-size:0.6rem;padding:0.15rem 0.4rem;flex-shrink:0;height:fit-content;margin-top:2px;font-weight:500;}
+  .prio-hoog{background:#fde8e0;color:var(--accent);}
+  .prio-mid{background:#dbeafe;color:var(--accent2);}
+  .prio-laag{background:#d1fae5;color:var(--green);}
+  .score-bar-wrap{display:flex;align-items:center;gap:1rem;margin-top:0.5rem;}
+  .score-bar{flex:1;height:6px;background:var(--line);overflow:hidden;}
+  .score-bar-fill{height:100%;background:var(--accent);transition:width 1s cubic-bezier(0.4,0,0.2,1) 0.3s;width:0%;}
+  .score-label{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent);min-width:60px;text-align:right;}
+  .btn-print{display:inline-flex;align-items:center;gap:0.5rem;margin-top:1.5rem;padding:0.6rem 1.2rem;border:1.5px solid var(--ink);background:transparent;font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+  .btn-print:hover{background:var(--ink);color:var(--paper);}
+  @media(max-width:600px){header{padding:1.2rem 1.5rem;flex-direction:column;align-items:flex-start;gap:0.3rem;}main{padding:2rem 1.2rem 6rem;}.options-grid,.options-grid.cols2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<header>
+  <div class="logo">Niels<span>Automatiseert</span></div>
+  <div class="tagline">Makelaar Scan · v2.0</div>
+</header>
+<main>
+  <div class="intro">
+    <div class="intro-label">Gratis diepte-analyse</div>
+    <h1>Laten we ontdekken wat<br>jouw makelaarskantoor <em>automatisch</em><br>kan doen.</h1>
+    <p>Deze scan geeft ons een volledig beeld van hoe jouw kantoor nu werkt. Op basis van jouw antwoorden maken we een concreet automatiseringsplan — zodat jij je tijd kunt besteden aan advies en relaties, niet aan administratie.</p>
+    <div class="time-badge">⏱ Duurt ca. 10–15 minuten</div>
+  </div>
+
+  <form id="scan-form" novalidate>
+
+    <!-- 01 BASIS -->
+    <div class="section" id="s1">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">01 —</span><span class="section-title">Over jouw kantoor</span></div>
+        <div class="section-desc">De basisinfo om te begrijpen met wie we te maken hebben.</div>
+      </div>
+      <div class="question"><span class="qlabel">Naam van het kantoor <span class="req">*</span></span><input type="text" name="kantoor_naam" placeholder="bijv. Jansen Makelaardij" required></div>
+      <div class="question"><span class="qlabel">Website URL</span><input type="url" name="website" placeholder="https://www.jouwkantoor.nl"></div>
+      <div class="question">
+        <span class="qlabel">Wat voor type makelaar?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="type" value="aankoop_verkoop" id="ty1"><label for="ty1">Aankoop & verkoop</label></div>
+          <div class="option-item"><input type="radio" name="type" value="verhuur" id="ty2"><label for="ty2">Verhuur (woonruimte)</label></div>
+          <div class="option-item"><input type="radio" name="type" value="commercieel" id="ty3"><label for="ty3">Commercieel vastgoed</label></div>
+          <div class="option-item"><input type="radio" name="type" value="alles" id="ty4"><label for="ty4">Alles — aankoop, verkoop én verhuur</label></div>
+          <div class="option-item"><input type="radio" name="type" value="beheer" id="ty5"><label for="ty5">Vastgoedbeheer / VvE</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoeveel makelaars / medewerkers werken er?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="team_size" value="solo" id="t1"><label for="t1">Alleen ik</label></div>
+          <div class="option-item"><input type="radio" name="team_size" value="2-4" id="t2"><label for="t2">2 – 4 personen</label></div>
+          <div class="option-item"><input type="radio" name="team_size" value="5-10" id="t3"><label for="t3">5 – 10 personen</label></div>
+          <div class="option-item"><input type="radio" name="team_size" value="10+" id="t4"><label for="t4">Meer dan 10</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoeveel actieve dossiers/objecten heb je gemiddeld?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="actieve_objecten" value="<10" id="ao1"><label for="ao1">Minder dan 10</label></div>
+          <div class="option-item"><input type="radio" name="actieve_objecten" value="10-30" id="ao2"><label for="ao2">10 – 30</label></div>
+          <div class="option-item"><input type="radio" name="actieve_objecten" value="30-75" id="ao3"><label for="ao3">30 – 75</label></div>
+          <div class="option-item"><input type="radio" name="actieve_objecten" value="75+" id="ao4"><label for="ao4">Meer dan 75</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 LEADS & CRM -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">02 —</span><span class="section-title">Leads & CRM</span></div>
+        <div class="section-desc">Hoe nieuwe klanten binnenkomen en hoe je ze opvolgt.</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Waar komen je leads vandaan?</span>
+        <div class="options-grid">
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="funda" id="lb1"><label for="lb1">Funda (reacties op woningen)</label></div>
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="website" id="lb2"><label for="lb2">Eigen website / contactformulier</label></div>
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="social" id="lb3"><label for="lb3">Social media (Instagram / Facebook)</label></div>
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="mond_tot_mond" id="lb4"><label for="lb4">Mond-tot-mond / aanbevelingen</label></div>
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="google" id="lb5"><label for="lb5">Google (SEO / Google Ads)</label></div>
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="jaap" id="lb6"><label for="lb6">Jaap.nl / Huislijn.nl</label></div>
+          <div class="option-item"><input type="checkbox" name="lead_bronnen" value="netwerk" id="lb7"><label for="lb7">Professioneel netwerk</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Gebruik je een CRM systeem?</span>
+        <select name="crm">
+          <option value="">Kies...</option>
+          <option value="realworks">Realworks</option>
+          <option value="kolibri">Kolibri</option>
+          <option value="makelaarsuite">MakelaarSuite</option>
+          <option value="hubspot">HubSpot</option>
+          <option value="excel">Excel / Google Sheets</option>
+          <option value="geen">Geen — bijhouden in hoofd / mail</option>
+          <option value="anders">Anders</option>
+        </select>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe snel volg je nieuwe leads op?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="opvolging_snelheid" value="zelfde_uur" id="os1"><label for="os1">Binnen het uur</label></div>
+          <div class="option-item"><input type="radio" name="opvolging_snelheid" value="zelfde_dag" id="os2"><label for="os2">Dezelfde dag</label></div>
+          <div class="option-item"><input type="radio" name="opvolging_snelheid" value="paar_dagen" id="os3"><label for="os3">Binnen een paar dagen</label></div>
+          <div class="option-item"><input type="radio" name="opvolging_snelheid" value="traag" id="os4"><label for="os4">Soms te laat — leads glippen erdoor</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe volg je leads op die niet direct converteren?</span>
+        <div class="options-grid cols1">
+          <div class="option-item"><input type="radio" name="lead_opvolging" value="automatisch_crm" id="lo1"><label for="lo1">Automatisch via CRM / e-mail flows</label></div>
+          <div class="option-item"><input type="radio" name="lead_opvolging" value="handmatig_reminder" id="lo2"><label for="lo2">Handmatig — ik zet reminders voor mezelf</label></div>
+          <div class="option-item"><input type="radio" name="lead_opvolging" value="ad_hoc" id="lo3"><label for="lo3">Ad hoc — als ik er aan denk</label></div>
+          <div class="option-item"><input type="radio" name="lead_opvolging" value="nauwelijks" id="lo4"><label for="lo4">Nauwelijks — geen structurele opvolging</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoeveel procent van je leads converteert naar klant (schatting)?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="conversie" value="<10" id="cv1"><label for="cv1">Minder dan 10%</label></div>
+          <div class="option-item"><input type="radio" name="conversie" value="10-25" id="cv2"><label for="cv2">10% – 25%</label></div>
+          <div class="option-item"><input type="radio" name="conversie" value="25-50" id="cv3"><label for="cv3">25% – 50%</label></div>
+          <div class="option-item"><input type="radio" name="conversie" value="50+" id="cv4"><label for="cv4">Meer dan 50%</label></div>
+          <div class="option-item"><input type="radio" name="conversie" value="weet_niet" id="cv5"><label for="cv5">Weet ik niet</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 BEZICHTIGINGEN -->
+    <div class="section" id="s3">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">03 —</span><span class="section-title">Bezichtigingen & planning</span></div>
+        <div class="section-desc">Het inplannen van bezichtigingen kost veel meer tijd dan mensen denken.</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe plan je bezichtigingen in?</span>
+        <div class="options-grid cols1">
+          <div class="option-item"><input type="radio" name="bezichtiging_planning" value="telefoon_email" id="bp1"><label for="bp1">Telefonisch of via e-mail — heen en weer communiceren</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_planning" value="online_agenda" id="bp2"><label for="bp2">Via een online agenda tool (bijv. Calendly)</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_planning" value="zelf_inplannen" id="bp3"><label for="bp3">Geïnteresseerden kunnen zelf een tijdslot kiezen</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_planning" value="crm_planning" id="bp4"><label for="bp4">Via het CRM systeem</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoeveel bezichtigingen plan je gemiddeld per week in?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="bezichtigingen_pw" value="<5" id="bz1"><label for="bz1">Minder dan 5</label></div>
+          <div class="option-item"><input type="radio" name="bezichtigingen_pw" value="5-15" id="bz2"><label for="bz2">5 – 15</label></div>
+          <div class="option-item"><input type="radio" name="bezichtigingen_pw" value="15-30" id="bz3"><label for="bz3">15 – 30</label></div>
+          <div class="option-item"><input type="radio" name="bezichtigingen_pw" value="30+" id="bz4"><label for="bz4">Meer dan 30</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Stuur je automatisch een bevestiging en reminder na het inplannen?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="bezichtiging_reminder" value="automatisch" id="br1"><label for="br1">Ja, volledig automatisch</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_reminder" value="handmatig" id="br2"><label for="br2">Handmatig via e-mail</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_reminder" value="bevestiging_alleen" id="br3"><label for="br3">Alleen een bevestiging, geen reminder</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_reminder" value="nee" id="br4"><label for="br4">Nee, niets</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Stuur je na een bezichtiging een follow-up naar de geïnteresseerde?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="bezichtiging_followup" value="altijd_snel" id="bf1"><label for="bf1">Altijd — binnen de dag</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_followup" value="meestal" id="bf2"><label for="bf2">Meestal wel</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_followup" value="soms" id="bf3"><label for="bf3">Soms — als ik er aan denk</label></div>
+          <div class="option-item"><input type="radio" name="bezichtiging_followup" value="zelden" id="bf4"><label for="bf4">Zelden — geen tijd voor</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 DAGELIJKSE WERKDAG -->
+    <div class="section" id="s4">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">04 —</span><span class="section-title">Jouw dagelijkse werkdag</span></div>
+        <div class="section-desc">Hier vinden we de meeste verborgen tijdverspilling.</div>
+      </div>
+      <div class="question"><span class="qlabel">Hoe begint jouw werkdag? Wat doe je als eerste?</span><span class="hint">De eerste 30–60 minuten: wat open je, welke berichten beantwoord je, wat staat er altijd op je to-do?</span><textarea name="werkdag_start" placeholder="bijv. Ik check e-mail, beantwoord Funda reacties, kijk naar de agenda voor bezichtigingen vandaag..."></textarea></div>
+      <div class="question">
+        <span class="qlabel">Welke taken doe je elke dag opnieuw handmatig?</span>
+        <div class="options-grid">
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="funda_reacties" id="d1"><label for="d1">Funda reacties beantwoorden</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="bezichtigingen_inplannen" id="d2"><label for="d2">Bezichtigingen inplannen</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="documenten_opstellen" id="d3"><label for="d3">Documenten opstellen / aanpassen</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="klanten_updaten" id="d4"><label for="d4">Klanten updaten over status dossier</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="offertes_maken" id="d5"><label for="d5">Opdrachten / offertes opstellen</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="social_media" id="d6"><label for="d6">Social media bijhouden / objecten posten</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="facturen" id="d7"><label for="d7">Facturen aanmaken en versturen</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="presentaties_maken" id="d8"><label for="d8">Woningpresentaties / brochures maken</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="leads_opvolgen" id="d9"><label for="d9">Leads opvolgen die al even stil liggen</label></div>
+          <div class="option-item"><input type="checkbox" name="dagelijks" value="notarissen_contact" id="d10"><label for="d10">Contact met notarissen / hypotheekadviseurs</label></div>
+        </div>
+      </div>
+      <div class="question"><span class="qlabel">Welke taak wil je het LIEFST nooit meer doen?</span><textarea name="haat_taak" placeholder="De taak die energie kost en die je het liefst zou automatiseren..."></textarea></div>
+      <div class="question">
+        <span class="qlabel">Hoeveel uur per week ben je bezig met administratie en handmatig werk?</span>
+        <div class="range-wrap">
+          <input type="range" name="uren_pw" id="uren_range" min="1" max="60" value="15" oninput="document.getElementById('uren_val').textContent=this.value+'u'">
+          <span class="range-val" id="uren_val">15u</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 DOCUMENTEN & DOSSIERS -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">05 —</span><span class="section-title">Documenten & dossiers</span></div>
+        <div class="section-desc">Documentbeheer is bij de meeste makelaars een grote tijdverspiller.</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe beheer je je dossiers en documenten?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="dossier_beheer" value="crm" id="db1"><label for="db1">Volledig in het CRM systeem</label></div>
+          <div class="option-item"><input type="radio" name="dossier_beheer" value="google_drive" id="db2"><label for="db2">Google Drive / Dropbox</label></div>
+          <div class="option-item"><input type="radio" name="dossier_beheer" value="lokaal" id="db3"><label for="db3">Lokale mappen op de computer</label></div>
+          <div class="option-item"><input type="radio" name="dossier_beheer" value="papier" id="db4"><label for="db4">Deels papier</label></div>
+          <div class="option-item"><input type="radio" name="dossier_beheer" value="mix" id="db5"><label for="db5">Mix — overal wat</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Gebruik je digitaal ondertekenen?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="digitaal_tekenen" value="altijd" id="dt1"><label for="dt1">Ja, altijd via een tool</label></div>
+          <div class="option-item"><input type="radio" name="digitaal_tekenen" value="soms" id="dt2"><label for="dt2">Soms</label></div>
+          <div class="option-item"><input type="radio" name="digitaal_tekenen" value="nee_maar_wil" id="dt3"><label for="dt3">Nee, maar zou het willen</label></div>
+          <div class="option-item"><input type="radio" name="digitaal_tekenen" value="nee" id="dt4"><label for="dt4">Nee, alles fysiek</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe maak je woningpresentaties / brochures?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="presentatie_methode" value="crm_automatisch" id="pm1"><label for="pm1">Automatisch vanuit het CRM</label></div>
+          <div class="option-item"><input type="radio" name="presentatie_methode" value="template_handmatig" id="pm2"><label for="pm2">Template + handmatig invullen</label></div>
+          <div class="option-item"><input type="radio" name="presentatie_methode" value="canva_word" id="pm3"><label for="pm3">Canva / Word — helemaal handmatig</label></div>
+          <div class="option-item"><input type="radio" name="presentatie_methode" value="bureau" id="pm4"><label for="pm4">Marketingbureau maakt ze</label></div>
+        </div>
+      </div>
+      <div class="question"><span class="qlabel">Gebruik je Excel of Google Sheets ergens voor?</span><span class="hint">bijv. voor dossieroverzichten, omzetprognoses, commissieberekeningen</span><textarea name="excel_gebruik" placeholder="bijv. Ik houd al mijn actieve objecten bij in Excel met status, vraagprijs en contactgegevens..."></textarea></div>
+      <div class="question">
+        <span class="qlabel">Is je boekhouding / facturatie geautomatiseerd?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="facturatie" value="automatisch" id="fc1"><label for="fc1">Ja, facturen gaan automatisch</label></div>
+          <div class="option-item"><input type="radio" name="facturatie" value="handmatig_tool" id="fc2"><label for="fc2">Handmatig via boekhoud tool</label></div>
+          <div class="option-item"><input type="radio" name="facturatie" value="handmatig_word" id="fc3"><label for="fc3">Handmatig — Word / Excel</label></div>
+          <div class="option-item"><input type="radio" name="facturatie" value="accountant" id="fc4"><label for="fc4">Accountant regelt alles</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 MARKETING & ONLINE ZICHTBAARHEID -->
+    <div class="section" id="s6">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">06 —</span><span class="section-title">Marketing & online zichtbaarheid</span></div>
+        <div class="section-desc">Hoe trek je nieuwe klanten aan en hoe beheer je je online aanwezigheid?</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe publiceer je nieuwe objecten online?</span>
+        <div class="options-grid cols1">
+          <div class="option-item"><input type="radio" name="object_publicatie" value="crm_automatisch" id="op1"><label for="op1">Automatisch vanuit CRM naar Funda en website</label></div>
+          <div class="option-item"><input type="radio" name="object_publicatie" value="handmatig_funda" id="op2"><label for="op2">Handmatig invoeren op Funda (kost veel tijd)</label></div>
+          <div class="option-item"><input type="radio" name="object_publicatie" value="semi" id="op3"><label for="op3">Gedeeltelijk — sommige dingen automatisch</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe post je nieuwe objecten op social media?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="social_posting" value="automatisch" id="sp1"><label for="sp1">Automatisch — direct als object live gaat</label></div>
+          <div class="option-item"><input type="radio" name="social_posting" value="gepland" id="sp2"><label for="sp2">Handmatig gepland in advance</label></div>
+          <div class="option-item"><input type="radio" name="social_posting" value="handmatig" id="sp3"><label for="sp3">Handmatig als ik tijd heb</label></div>
+          <div class="option-item"><input type="radio" name="social_posting" value="zelden" id="sp4"><label for="sp4">Zelden / nauwelijks</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Stuur je e-mails naar je netwerk/database over nieuwe objecten?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="object_mail" value="automatisch" id="om1"><label for="om1">Ja, automatisch op basis van wensen</label></div>
+          <div class="option-item"><input type="radio" name="object_mail" value="handmatig" id="om2"><label for="om2">Handmatig — ik selecteer zelf wie</label></div>
+          <div class="option-item"><input type="radio" name="object_mail" value="soms" id="om3"><label for="om3">Soms, niet structureel</label></div>
+          <div class="option-item"><input type="radio" name="object_mail" value="nee" id="om4"><label for="om4">Nee</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 DATA & CIJFERS -->
+    <div class="section" id="s7">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">07 —</span><span class="section-title">Data & prestaties</span></div>
+        <div class="section-desc">Hoe goed heb je inzicht in de prestaties van je kantoor?</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Welke KPIs volg je bij?</span>
+        <div class="options-grid">
+          <div class="option-item"><input type="checkbox" name="kpis" value="nieuwe_leads" id="kp1"><label for="kp1">Aantal nieuwe leads per week/maand</label></div>
+          <div class="option-item"><input type="checkbox" name="kpis" value="conversie" id="kp2"><label for="kp2">Lead-naar-klant conversieratio</label></div>
+          <div class="option-item"><input type="checkbox" name="kpis" value="omzet" id="kp3"><label for="kp3">Omzet / commissie per maand</label></div>
+          <div class="option-item"><input type="checkbox" name="kpis" value="doorlooptijd" id="kp4"><label for="kp4">Doorlooptijd object (aanmelding → verkoop)</label></div>
+          <div class="option-item"><input type="checkbox" name="kpis" value="bezichtigingen" id="kp5"><label for="kp5">Aantal bezichtigingen per object</label></div>
+          <div class="option-item"><input type="checkbox" name="kpis" value="pipeline" id="kp6"><label for="kp6">Pipeline waarde (actieve dossiers)</label></div>
+          <div class="option-item"><input type="checkbox" name="kpis" value="geen" id="kp7"><label for="kp7">Eigenlijk geen vaste KPIs</label></div>
+        </div>
+      </div>
+      <div class="question"><span class="qlabel">Welke cijfers mis je maar zou je graag automatisch willen zien?</span><textarea name="gemiste_cijfers" placeholder="bijv. Ik wil weten hoeveel bezichtigingen een object gemiddeld nodig heeft, en welke lead-bron het beste converteert..."></textarea></div>
+      <div class="question">
+        <span class="qlabel">Hoeveel tijd kost het maandelijks om je prestaties te analyseren?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="rapportage_tijd" value="geen" id="rt1"><label for="rt1">Doe ik eigenlijk niet</label></div>
+          <div class="option-item"><input type="radio" name="rapportage_tijd" value="<1u" id="rt2"><label for="rt2">Minder dan 1 uur</label></div>
+          <div class="option-item"><input type="radio" name="rapportage_tijd" value="1-3u" id="rt3"><label for="rt3">1 – 3 uur</label></div>
+          <div class="option-item"><input type="radio" name="rapportage_tijd" value="3+" id="rt4"><label for="rt4">Meer dan 3 uur</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08 PIJNPUNTEN -->
+    <div class="section" id="s8">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">08 —</span><span class="section-title">Pijnpunten & prioriteiten</span></div>
+        <div class="section-desc">Wat kost de meeste energie en waar wil je het snelst verbetering?</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Wat zijn de grootste frustraties in jouw kantoor?</span>
+        <div class="options-grid cols1">
+          <div class="option-item"><input type="checkbox" name="frustraties" value="leads_glippen" id="fr1"><label for="fr1">Leads glippen erdoor omdat opvolging te langzaam gaat</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="admin_te_veel" id="fr2"><label for="fr2">Ik besteed meer tijd aan administratie dan aan klanten</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="documenten_chaos" id="fr3"><label for="fr3">Documenten en dossiers zijn verspreid — ik zoek te veel</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="funda_handmatig" id="fr4"><label for="fr4">Funda-invoer kost veel te veel tijd per object</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="social_geen_tijd" id="fr5"><label for="fr5">Social media blijft erbij zitten — geen tijd voor</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="geen_inzicht" id="fr6"><label for="fr6">Ik heb geen goed overzicht van mijn pipeline en prestaties</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="planning_chaos" id="fr7"><label for="fr7">Bezichtigingen inplannen kost te veel heen-en-weer communicatie</label></div>
+          <div class="option-item"><input type="checkbox" name="frustraties" value="klanten_contact" id="fr8"><label for="fr8">Klanten klagen dat ze te weinig updates krijgen over hun dossier</label></div>
+        </div>
+      </div>
+      <div class="question"><span class="qlabel">Als je morgen één ding geautomatiseerd zou kunnen hebben, wat is dat?</span><textarea name="top1_automatisering" placeholder="Beschrijf zo concreet mogelijk wat je nooit meer handmatig wilt doen..."></textarea></div>
+      <div class="question"><span class="qlabel">Wat is het gevolg als dit probleem niet opgelost wordt?</span><textarea name="gevolg_geen_oplossing" placeholder="bijv. We missen leads, of ik kan niet groeien zonder extra personeel..."></textarea></div>
+    </div>
+
+    <!-- 09 DOELEN -->
+    <div class="section" id="s9">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">09 —</span><span class="section-title">Doelen & verwachtingen</span></div>
+        <div class="section-desc">Wat wil je bereiken en hoe ziet succes eruit?</div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Wat is jouw belangrijkste doel voor de komende 6 maanden?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="doel" value="meer_objecten" id="do1"><label for="do1">Meer objecten in portefeuille</label></div>
+          <div class="option-item"><input type="radio" name="doel" value="hogere_conversie" id="do2"><label for="do2">Hogere conversie van leads naar klant</label></div>
+          <div class="option-item"><input type="radio" name="doel" value="minder_admin" id="do3"><label for="do3">Minder tijd kwijt aan administratie</label></div>
+          <div class="option-item"><input type="radio" name="doel" value="beter_inzicht" id="do4"><label for="do4">Beter inzicht in pijplijn en omzet</label></div>
+          <div class="option-item"><input type="radio" name="doel" value="groeien" id="do5"><label for="do5">Groeien zonder extra mensen</label></div>
+          <div class="option-item"><input type="radio" name="doel" value="klantbeleving" id="do6"><label for="do6">Betere klantbeleving / meer aanbevelingen</label></div>
+        </div>
+      </div>
+      <div class="question">
+        <span class="qlabel">Hoe technisch ben jij of je team?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="tech" value="niet" id="te1"><label for="te1">Niet technisch — gewoon laten werken</label></div>
+          <div class="option-item"><input type="radio" name="tech" value="beetje" id="te2"><label for="te2">Beetje handig</label></div>
+          <div class="option-item"><input type="radio" name="tech" value="redelijk" id="te3"><label for="te3">Redelijk technisch</label></div>
+          <div class="option-item"><input type="radio" name="tech" value="hoog" id="te4"><label for="te4">Technisch sterk</label></div>
+        </div>
+      </div>
+      <div class="question"><span class="qlabel">Heb je eerder iets geprobeerd te automatiseren?</span><textarea name="eerdere_automatisering" placeholder="bijv. We gebruiken Calendly voor bezichtigingen maar de rest is handmatig..."></textarea></div>
+      <div class="question"><span class="qlabel">Wat zou een succesvol resultaat zijn na 3 maanden samenwerken?</span><textarea name="succes_def" placeholder="bijv. Leads worden automatisch opgevolgd, nieuwe objecten direct online en op social media, nooit meer handmatig plannen..."></textarea></div>
+      <div class="question">
+        <span class="qlabel">Is er een maandelijks budget beschikbaar voor automatisering?</span>
+        <div class="options-grid cols2">
+          <div class="option-item"><input type="radio" name="budget" value="<100" id="bu1"><label for="bu1">Minder dan €100/mnd</label></div>
+          <div class="option-item"><input type="radio" name="budget" value="100-300" id="bu2"><label for="bu2">€100 – €300/mnd</label></div>
+          <div class="option-item"><input type="radio" name="budget" value="300-700" id="bu3"><label for="bu3">€300 – €700/mnd</label></div>
+          <div class="option-item"><input type="radio" name="budget" value="700+" id="bu4"><label for="bu4">Meer dan €700/mnd</label></div>
+          <div class="option-item"><input type="radio" name="budget" value="weet_niet" id="bu5"><label for="bu5">Weet ik nog niet</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10 CONTACT -->
+    <div class="section" id="s10">
+      <div class="section-header">
+        <div class="section-top"><span class="section-num">10 —</span><span class="section-title">Jouw gegevens</span></div>
+        <div class="section-desc">Zodat we het plan persoonlijk kunnen toelichten.</div>
+      </div>
+      <div class="question"><span class="qlabel">Jouw naam <span class="req">*</span></span><input type="text" name="naam" placeholder="Voor- en achternaam" required></div>
+      <div class="question"><span class="qlabel">E-mailadres <span class="req">*</span></span><input type="email" name="email" placeholder="jij@makelaar.nl" required></div>
+      <div class="question"><span class="qlabel">Telefoonnummer (optioneel)</span><input type="text" name="telefoon" placeholder="+31 6 12345678"></div>
+      <div class="question"><span class="qlabel">Nog iets wat we moeten weten?</span><textarea name="overig" placeholder="Alles wat je kwijt wilt dat nog niet aan bod is gekomen..."></textarea></div>
+    </div>
+
+    <div class="submit-zone section" id="s11">
+      <h2>Klaar!</h2>
+      <p>Na het versturen zie je direct een eerste automatiseringsplan. We nemen binnen 1 werkdag contact op voor een gratis gesprek van 30 minuten om alles samen door te nemen.</p>
+      <button type="submit" class="btn-submit">Verstuur mijn scan <span class="arrow">→</span></button>
+    </div>
+  </form>
+
+  <div id="result-panel">
+    <h3>✦ Jouw automatiseringsplan</h3>
+    <div id="result-content"></div>
+    <button class="btn-print" onclick="window.print()">↓ Opslaan als PDF</button>
+  </div>
+</main>
+
+<script>
+  const SHEETS_URL = 'https://api.sheetbest.com/sheets/JOUW-MAKELAAR-SHEET-ID';
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.section').forEach(s => observer.observe(s));
+
+  function updateProgress() {
+    const fields = document.querySelectorAll('input:not([type=range]), select, textarea');
+    let filled = 0;
+    fields.forEach(f => { if(f.type==='radio'||f.type==='checkbox'){if(f.checked)filled++;} else if(f.value.trim())filled++; });
+    document.getElementById('progress').style.width = Math.min(100, Math.round(filled/fields.length*100)) + '%';
+  }
+  document.addEventListener('change', updateProgress);
+  document.addEventListener('input', updateProgress);
+
+  function getChecked(name){return[...document.querySelectorAll(`input[name="${name}"]:checked`)].map(i=>i.value);}
+  function getVal(name){const el=document.querySelector(`[name="${name}"]`);return el?el.value:'';}
+
+  function buildAnalyse() {
+    const naam = getVal('kantoor_naam') || 'jouw kantoor';
+    const uren = parseInt(getVal('uren_pw') || '15');
+    const dagelijks = getChecked('dagelijks');
+    const frustraties = getChecked('frustraties');
+    const crm = getVal('crm');
+    const opvolging = getVal('opvolging_snelheid');
+    const lead_opvolging = getVal('lead_opvolging');
+    const bezichtiging_planning = getVal('bezichtiging_planning');
+    const bezichtiging_followup = getVal('bezichtiging_followup');
+    const digitaal_tekenen = getVal('digitaal_tekenen');
+    const dossier_beheer = getVal('dossier_beheer');
+    const presentatie_methode = getVal('presentatie_methode');
+    const facturatie = getVal('facturatie');
+    const object_publicatie = getVal('object_publicatie');
+    const social_posting = getVal('social_posting');
+    const object_mail = getVal('object_mail');
+    const rapportage_tijd = getVal('rapportage_tijd');
+
+    let automations = [];
+
+    if(crm === 'excel' || crm === 'geen' || lead_opvolging === 'nauwelijks' || lead_opvolging === 'ad_hoc' || frustraties.includes('leads_glippen')) {
+      automations.push({ prio:'HOOG', cls:'prio-hoog', titel:'🎯 Automatische lead opvolging', beschrijving:`Nieuwe leads krijgen binnen 5 minuten een automatische reactie. Daarna een gestructureerde opvolgsequentie over 7 dagen. ${naam} laat nu waarschijnlijk 20–40% van de leads links liggen.` });
+    }
+    if(bezichtiging_planning === 'telefoon_email' || frustraties.includes('planning_chaos')) {
+      automations.push({ prio:'HOOG', cls:'prio-hoog', titel:'📅 Zelf-inplannen bezichtigingen', beschrijving:'Geïnteresseerden kiezen zelf een tijdslot uit jouw beschikbaarheid. Automatische bevestiging + reminder 24u van tevoren. Scheelt 30–60 minuten per object aan heen-en-weer communicatie.' });
+    }
+    if(object_publicatie === 'handmatig_funda' || frustraties.includes('funda_handmatig')) {
+      automations.push({ prio:'HOOG', cls:'prio-hoog', titel:'🏠 Automatische publicatie nieuwe objecten', beschrijving:'Zodra een object wordt aangemeld, gaat het automatisch live op Funda, de website en social media. Bespaart 1–2 uur per object aan handmatig invoerwerk.' });
+    }
+    if(facturatie === 'handmatig_word' || facturatie === 'handmatig_tool' || dagelijks.includes('facturen') || frustraties.includes('admin_te_veel')) {
+      automations.push({ prio:'HOOG', cls:'prio-hoog', titel:'🧾 Automatische factuurcreatie', beschrijving:'Bij ondertekening van de opdracht wordt automatisch een factuur aangemaakt en verstuurd. Gekoppeld aan het boekhoudsysteem. Nooit meer handmatig facturen maken.' });
+    }
+    if(bezichtiging_followup === 'soms' || bezichtiging_followup === 'zelden' || frustraties.includes('klanten_contact')) {
+      automations.push({ prio:'HOOG', cls:'prio-hoog', titel:'💬 Automatische klant-statusupdates', beschrijving:'Klanten ontvangen automatisch updates bij elke stap in het proces: bezichtiging bevestigd, bod ontvangen, koopovereenkomst, overdracht. Minder "hoe staat het er voor?" telefoontjes.' });
+    }
+    if(digitaal_tekenen === 'nee' || digitaal_tekenen === 'nee_maar_wil') {
+      automations.push({ prio:'MID', cls:'prio-mid', titel:'✍️ Digitaal ondertekenen', beschrijving:'Opdrachten, koopovereenkomsten en huurcontracten digitaal laten ondertekenen. Sneller, juridisch geldig en geen gedoe met fysiek rondsturen van papieren.' });
+    }
+    if(social_posting === 'handmatig' || social_posting === 'zelden' || frustraties.includes('social_geen_tijd')) {
+      automations.push({ prio:'MID', cls:'prio-mid', titel:'📱 Automatische social media posts per object', beschrijving:'Zodra een object live gaat, verschijnt automatisch een professionele post op Instagram en Facebook met foto\'s en kerninfo. Nooit meer handmatig posten.' });
+    }
+    if(object_mail === 'handmatig' || object_mail === 'soms' || object_mail === 'nee') {
+      automations.push({ prio:'MID', cls:'prio-mid', titel:'✉️ Automatische match-mail aan zoekers', beschrijving:'Kopers/huurders in je database die naar iets soortgelijks zoeken ontvangen automatisch een mail bij een nieuw passend object. Betere kans op snelle verkoop of verhuur.' });
+    }
+    if(rapportage_tijd === '1-3u' || rapportage_tijd === '3+' || frustraties.includes('geen_inzicht')) {
+      automations.push({ prio:'MID', cls:'prio-mid', titel:'📊 Automatisch maandrapport', beschrijving:'Elke eerste maandag van de maand: nieuwe leads, conversieratio, actieve objecten, commissie en doorlooptijden — automatisch in je inbox. Geen handmatige analyse meer.' });
+    }
+    if(dossier_beheer === 'lokaal' || dossier_beheer === 'mix' || dossier_beheer === 'papier') {
+      automations.push({ prio:'LAAG', cls:'prio-laag', titel:'📁 Digitale dossier organisatie', beschrijving:'Centrale plek voor alle documenten per object/klant. Automatische mapstructuur bij elk nieuw dossier. Nooit meer zoeken waar iets staat.' });
+    }
+    automations.push({ prio:'LAAG', cls:'prio-laag', titel:'⭐ Automatische review verzameling', beschrijving:'Na elke overdracht of verhuuroplevering gaat automatisch een review-verzoek. Meer Google reviews = betere vindbaarheid voor nieuwe klanten.' });
+
+    const besparing = Math.round(uren * 0.65);
+    const score = Math.min(98, automations.length * 8 + frustraties.length * 4 + dagelijks.length * 2);
+    return { naam, automations, uren, besparing, score };
+  }
+
+  async function stuurNaarSheets(data) {
+    try {
+      await fetch(SHEETS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    } catch(err) { console.log('Sheet sync mislukt:', err); }
+  }
+
+  document.getElementById('scan-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const { naam, automations, uren, besparing, score } = buildAnalyse();
+    const nu = new Date();
+    const datum = nu.toLocaleDateString('nl-NL') + ' ' + nu.toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
+
+    await stuurNaarSheets({
+      datum, kantoor_naam: getVal('kantoor_naam'), naam: getVal('naam'), email: getVal('email'),
+      telefoon: getVal('telefoon'), website: getVal('website'), type: getVal('type'),
+      team_size: getVal('team_size'), actieve_objecten: getVal('actieve_objecten'),
+      lead_bronnen: getChecked('lead_bronnen').join(', '), crm: getVal('crm'),
+      opvolging_snelheid: getVal('opvolging_snelheid'), lead_opvolging: getVal('lead_opvolging'),
+      conversie: getVal('conversie'), bezichtiging_planning: getVal('bezichtiging_planning'),
+      bezichtigingen_pw: getVal('bezichtigingen_pw'), bezichtiging_reminder: getVal('bezichtiging_reminder'),
+      bezichtiging_followup: getVal('bezichtiging_followup'), dagelijkse_taken: getChecked('dagelijks').join(', '),
+      haat_taak: getVal('haat_taak'), uren_pw: getVal('uren_pw'), dossier_beheer: getVal('dossier_beheer'),
+      digitaal_tekenen: getVal('digitaal_tekenen'), presentatie_methode: getVal('presentatie_methode'),
+      excel_gebruik: getVal('excel_gebruik'), facturatie: getVal('facturatie'),
+      object_publicatie: getVal('object_publicatie'), social_posting: getVal('social_posting'),
+      object_mail: getVal('object_mail'), kpis: getChecked('kpis').join(', '),
+      gemiste_cijfers: getVal('gemiste_cijfers'), rapportage_tijd: getVal('rapportage_tijd'),
+      frustraties: getChecked('frustraties').join(', '), top1_automatisering: getVal('top1_automatisering'),
+      gevolg_geen_oplossing: getVal('gevolg_geen_oplossing'), doel: getVal('doel'),
+      tech: getVal('tech'), eerdere_automatisering: getVal('eerdere_automatisering'),
+      succes_def: getVal('succes_def'), budget: getVal('budget'), overig: getVal('overig'),
+      automatisering_score: score, geschatte_besparing_uren: besparing
+    });
+
+    let html = `
+      <div class="result-section">
+        <h4>Automatiseringsscore voor ${naam}</h4>
+        <div class="score-bar-wrap"><div class="score-bar"><div class="score-bar-fill" id="score-fill"></div></div><div class="score-label">${score}/100</div></div>
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:0.6rem;line-height:1.6">Je spendeert ca. <strong>${uren}u/week</strong> aan handmatig werk. Met automatisering bespaar je geschat <strong>${besparing}u/week</strong> — tijd die je kunt investeren in klantrelaties en nieuwe opdrachten.</p>
+      </div>
+      <div class="result-section">
+        <h4>Aanbevolen automatiseringen (${automations.length} workflows)</h4>
+        ${automations.map(a=>`<div class="auto-card"><span class="prio ${a.cls}">${a.prio}</span><div><strong>${a.titel}</strong><br><span style="color:var(--muted);font-size:0.8rem">${a.beschrijving}</span></div></div>`).join('')}
+      </div>
+      <div class="result-section" style="padding-top:1rem;border-top:1px solid var(--line)">
+        <h4>Volgende stap</h4>
+        <p style="font-size:0.88rem;line-height:1.7;color:var(--muted)">We nemen binnen <strong>1 werkdag</strong> contact op voor een gratis gesprek van 30 minuten.<br><br><strong style="color:var(--ink)">Je hoeft zelf niets technisch te doen — wij regelen alles.</strong></p>
+      </div>`;
+
+    document.getElementById('result-content').innerHTML = html;
+    const panel = document.getElementById('result-panel');
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior:'smooth', block:'start' });
+    setTimeout(() => { document.getElementById('score-fill').style.width = score + '%'; }, 300);
+    document.getElementById('progress').style.width = '100%';
+  });
+</script>
+</body>
+</html>
