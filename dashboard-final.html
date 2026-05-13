@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Niels Automatiseert — Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&family=Inter:wght@300;400;500&display=swap');
+
+:root {
+  --bg:#0a0a0f; --surface:#111118; --surface2:#1a1a24;
+  --border:#2a2a38; --accent:#6c63ff; --accent2:#ff6584;
+  --green:#00e5a0; --orange:#ff9f43; --text:#e8e8f0; --muted:#6b6b85; --dim:#3a3a50;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.4;}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:#0a0a0f;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;}
+.login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-0.02em;}
+.login-logo span{color:var(--accent);}
+.login-sub{font-family:'Syne Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:-1rem;}
+#pw-input{padding:0.8rem 1.2rem;background:#111118;border:1px solid #2a2a38;color:#e8e8f0;font-family:'Inter',sans-serif;font-size:0.9rem;border-radius:6px;width:260px;outline:none;text-align:center;transition:border-color 0.2s;}
+#pw-input:focus{border-color:var(--accent);}
+#pw-btn{padding:0.7rem 2rem;background:var(--accent);border:none;color:white;font-family:'Syne',sans-serif;font-weight:600;font-size:0.85rem;border-radius:6px;cursor:pointer;transition:opacity 0.2s;}
+#pw-btn:hover{opacity:0.85;}
+#pw-error{color:var(--accent2);font-size:0.78rem;font-family:'Syne Mono',monospace;display:none;}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);z-index:10;display:flex;flex-direction:column;padding:1.5rem;}
+.sidebar-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-0.02em;margin-bottom:0.25rem;}
+.sidebar-logo span{color:var(--accent);}
+.sidebar-sub{font-family:'Syne Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1.5rem;}
+
+.filter-label{font-family:'Syne Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;display:block;}
+.sidebar-filters{margin-bottom:1.5rem;}
+.filter-btn{display:flex;align-items:center;gap:0.5rem;width:100%;padding:0.45rem 0.75rem;border-radius:5px;font-size:0.8rem;color:var(--muted);cursor:pointer;transition:all 0.15s;border:none;background:none;font-family:'Inter',sans-serif;text-align:left;margin-bottom:0.15rem;}
+.filter-btn:hover{background:var(--surface2);color:var(--text);}
+.filter-btn.active{background:var(--surface2);color:var(--text);}
+.f-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.filter-count{margin-left:auto;font-family:'Syne Mono',monospace;font-size:0.65rem;color:var(--dim);}
+
+.sidebar-stats{margin-top:auto;padding-top:1.5rem;border-top:1px solid var(--border);}
+.stat-item{margin-bottom:1rem;}
+.stat-lbl{font-family:'Syne Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.2rem;}
+.stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:1.4rem;color:var(--accent);}
+
+/* ── MAIN ── */
+.main{margin-left:240px;padding:2.5rem;position:relative;z-index:1;}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+.topbar h1{font-family:'Syne',sans-serif;font-weight:700;font-size:1.5rem;letter-spacing:-0.03em;}
+.topbar h1 span{color:var(--accent);}
+.topbar-right{display:flex;gap:0.5rem;align-items:center;}
+.btn-action{display:flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:'Inter',sans-serif;font-size:0.8rem;cursor:pointer;border-radius:6px;transition:all 0.2s;}
+.btn-action:hover{border-color:var(--accent);color:var(--accent);}
+.btn-action.loading .icon{animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.search-input{padding:0.55rem 1rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:0.8rem;border-radius:6px;outline:none;width:200px;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--muted);}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:2rem;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.3rem;position:relative;overflow:hidden;animation:fadeUp 0.4s ease both;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--accent));}
+.kpi-lbl{font-family:'Syne Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;}
+.kpi-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;line-height:1;}
+.kpi-sub{font-family:'Syne Mono',monospace;font-size:0.58rem;color:var(--dim);margin-top:0.3rem;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+/* ── LOADING ── */
+.loading-state{text-align:center;padding:4rem;color:var(--muted);}
+.loading-dots{display:inline-flex;gap:0.4rem;margin-top:1rem;}
+.loading-dots span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 1.4s ease-in-out infinite;}
+.loading-dots span:nth-child(2){animation-delay:0.2s;}
+.loading-dots span:nth-child(3){animation-delay:0.4s;}
+@keyframes pulse{0%,80%,100%{opacity:0.2;transform:scale(0.8);}40%{opacity:1;transform:scale(1);}}
+
+/* ── BRANCHE HEADER ── */
+.branche-header{display:flex;align-items:center;gap:0.75rem;margin:2rem 0 0.75rem;padding-bottom:0.6rem;border-bottom:1px solid var(--border);}
+.branche-header h2{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:-0.02em;}
+.branche-count{margin-left:auto;font-family:'Syne Mono',monospace;font-size:0.62rem;color:var(--muted);}
+
+/* ── LEAD CARD ── */
+.klant-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;animation:fadeUp 0.3s ease both;transition:border-color 0.2s;margin-bottom:0.75rem;}
+.klant-card:hover{border-color:var(--accent);}
+.klant-header{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;cursor:pointer;user-select:none;}
+.klant-header-left{display:flex;align-items:center;gap:0.9rem;}
+.klant-avatar{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.95rem;flex-shrink:0;}
+.klant-naam{font-family:'Syne',sans-serif;font-weight:600;font-size:0.92rem;margin-bottom:0.1rem;}
+.klant-meta{font-family:'Syne Mono',monospace;font-size:0.6rem;color:var(--muted);}
+.klant-badges{display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;}
+.badge{padding:0.18rem 0.55rem;border-radius:3px;font-family:'Syne Mono',monospace;font-size:0.58rem;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
+.badge-info{background:var(--surface2);color:var(--muted);}
+.badge-score{background:rgba(108,99,255,0.15);color:var(--accent);}
+.badge-budget{background:rgba(0,229,160,0.1);color:var(--green);}
+.badge-hot{background:rgba(255,101,132,0.15);color:var(--accent2);}
+.expand-icon{color:var(--muted);font-size:0.75rem;transition:transform 0.3s;margin-left:0.75rem;flex-shrink:0;}
+.klant-card.open .expand-icon{transform:rotate(180deg);}
+
+/* ── DETAIL ── */
+.klant-detail{display:none;border-top:1px solid var(--border);}
+.klant-card.open .klant-detail{display:block;}
+.detail-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.detail-tabs::-webkit-scrollbar{display:none;}
+.tab-btn{padding:0.65rem 1.1rem;font-family:'Syne Mono',monospace;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);cursor:pointer;border:none;background:none;transition:all 0.2s;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-content{display:none;padding:1.4rem;}
+.tab-content.active{display:block;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem;}
+.info-row{display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.78rem;}
+.info-row:last-child{border-bottom:none;}
+.info-label{color:var(--muted);flex-shrink:0;margin-right:1rem;}
+.info-value{font-weight:500;text-align:right;max-width:60%;word-break:break-word;}
+.section-label{font-family:'Syne Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;margin:1rem 0 0.5rem;}
+.section-label:first-child{margin-top:0;}
+.auto-item{display:flex;gap:0.7rem;padding:0.65rem 0.85rem;margin-bottom:0.35rem;border-radius:5px;font-size:0.78rem;line-height:1.5;background:var(--surface2);border-left:3px solid transparent;}
+.auto-item.hoog{border-left-color:var(--accent2);}
+.auto-item.mid{border-left-color:var(--accent);}
+.auto-item.laag{border-left-color:var(--green);}
+.auto-prio{font-family:'Syne Mono',monospace;font-size:0.55rem;padding:0.12rem 0.3rem;border-radius:3px;flex-shrink:0;height:fit-content;margin-top:2px;font-weight:600;}
+.auto-item.hoog .auto-prio{background:rgba(255,101,132,0.2);color:var(--accent2);}
+.auto-item.mid .auto-prio{background:rgba(108,99,255,0.2);color:var(--accent);}
+.auto-item.laag .auto-prio{background:rgba(0,229,160,0.15);color:var(--green);}
+.score-wrap{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;}
+.score-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.score-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;}
+.score-num{font-family:'Syne Mono',monospace;font-size:0.72rem;color:var(--accent);min-width:90px;}
+.quote-block{padding:0.75rem 1rem;border-left:3px solid var(--green);background:rgba(0,229,160,0.05);font-size:0.78rem;font-style:italic;color:var(--muted);border-radius:0 4px 4px 0;margin-top:0.5rem;line-height:1.6;}
+.quote-block.orange{border-left-color:var(--orange);background:rgba(255,159,67,0.05);}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:5rem 2rem;color:var(--muted);}
+.empty-state .big-icon{font-size:3rem;margin-bottom:1rem;}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--text);margin-bottom:0.5rem;}
+
+/* ── STATUS BADGE ── */
+.status-wrap{display:flex;align-items:center;gap:0.5rem;margin-top:0.75rem;}
+.status-select{padding:0.3rem 0.6rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Syne Mono',monospace;font-size:0.65rem;border-radius:4px;cursor:pointer;outline:none;}
+.btn-mail{padding:0.3rem 0.8rem;background:var(--accent);border:none;color:#fff;font-family:'Syne Mono',monospace;font-size:0.62rem;border-radius:4px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem;}
+
+@media(max-width:900px){.sidebar{display:none;}.main{margin-left:0;padding:1.5rem;}.kpi-row{grid-template-columns:repeat(2,1fr);}.info-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">Niels<span>Auto</span></div>
+  <div class="login-sub">Dashboard — Toegang vereist</div>
+  <input id="pw-input" type="password" placeholder="Wachtwoord..." onkeydown="if(event.key==='Enter')checkPW()">
+  <button id="pw-btn" onclick="checkPW()">Inloggen →</button>
+  <div id="pw-error">Fout wachtwoord — probeer opnieuw</div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Niels<span>Auto</span></div>
+  <div class="sidebar-sub">Dashboard v3.1</div>
+
+  <div class="sidebar-filters">
+    <span class="filter-label">Branche</span>
+    <button class="filter-btn active" id="filter-alle" onclick="setFilter('alle')">
+      <span class="f-dot" style="background:var(--accent)"></span>
+      Alle branches
+      <span class="filter-count" id="count-alle">—</span>
+    </button>
+    <!-- Dynamisch gevuld via JS -->
+    <div id="sidebar-filter-items"></div>
+  </div>
+
+  <div class="sidebar-stats">
+    <div class="stat-item"><div class="stat-lbl">Totaal leads</div><div class="stat-val" id="sb-totaal">—</div></div>
+    <div class="stat-item"><div class="stat-lbl">Gem. besparing/wk</div><div class="stat-val" id="sb-besparing">—</div></div>
+    <div class="stat-item"><div class="stat-lbl">Warme leads</div><div class="stat-val" id="sb-warm">—</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <h1>Alle <span>Scans</span></h1>
+    <div class="topbar-right">
+      <input type="text" class="search-input" id="zoek-input" placeholder="Zoek naam, e-mail..." oninput="renderAlles()">
+      <button class="btn-action" id="refresh-btn" onclick="laadAlles()">
+        <span class="icon">↻</span> Vernieuwen
+      </button>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi" style="--kpi-color:var(--accent)"><div class="kpi-lbl">Totaal leads</div><div class="kpi-val" id="kpi-totaal">—</div><div class="kpi-sub">alle branches</div></div>
+    <div class="kpi" style="--kpi-color:var(--green)"><div class="kpi-lbl">Gem. besparing/wk</div><div class="kpi-val" id="kpi-besparing">—</div><div class="kpi-sub">handmatig werk</div></div>
+    <div class="kpi" style="--kpi-color:var(--orange)"><div class="kpi-lbl">Emails verzameld</div><div class="kpi-val" id="kpi-emails">—</div><div class="kpi-sub">met e-mailadres</div></div>
+    <div class="kpi" style="--kpi-color:var(--accent2)"><div class="kpi-lbl">Gem. score</div><div class="kpi-val" id="kpi-score">—</div><div class="kpi-sub">automatisering</div></div>
+    <div class="kpi" style="--kpi-color:#a78bfa"><div class="kpi-lbl">Budget > €300</div><div class="kpi-val" id="kpi-warm">—</div><div class="kpi-sub">warme leads</div></div>
+  </div>
+
+  <div id="klanten-container">
+    <div class="loading-state">
+      <div style="font-family:'Syne Mono',monospace;font-size:0.8rem">Wachten op inloggen...</div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
+// ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
+// ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+// ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+// ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+//  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝
+// ═══════════════════════════════════════════════════════
+//
+// ──────────────────────────────────────────────
+//  HIER ALLEEN AANPASSEN — rest hoef je nooit aan te komen
+// ──────────────────────────────────────────────
+
+const WACHTWOORD = 'niels2025'; // ← verander dit
+
+// Voeg hier je branches toe.
+// Nieuwe branche? Gewoon een regel toevoegen.
+// Het dashboard past zichzelf automatisch aan.
+
+const BRANCHES = {
+  webshop: {
+    label:   'Webshop',
+    emoji:   '🛒',
+    color:   '#a78bfa',
+    api:     'https://api.sheetbest.com/sheets/35c7f7a2-a10d-4182-a359-8f915ccb811b', // ← jouw bestaande URL
+    naamVeld: 'shop_naam',
+    badge1:  row => row.platform || null,
+    badge2:  row => row.orders_pm ? row.orders_pm + ' orders/mnd' : null,
+  },
+  restaurant: {
+    label:   'Restaurant',
+    emoji:   '🍽️',
+    color:   '#ff9f43',
+    api:     'https://api.sheetbest.com/sheets/VERVANG-RESTAURANT-ID', // ← vervang
+    naamVeld: 'restaurant_naam',
+    badge1:  row => row.type || null,
+    badge2:  row => row.couverts ? row.couverts + ' couverts' : null,
+  },
+  makelaar: {
+    label:   'Makelaar',
+    emoji:   '🏠',
+    color:   '#00e5a0',
+    api:     'https://api.sheetbest.com/sheets/VERVANG-MAKELAAR-ID', // ← vervang
+    naamVeld: 'kantoor_naam',
+    badge1:  row => row.type || null,
+    badge2:  row => row.actieve_objecten ? row.actieve_objecten + ' objecten' : null,
+  },
+  garage: {
+    label:   'Garage',
+    emoji:   '🔧',
+    color:   '#ff6584',
+    api:     'https://api.sheetbest.com/sheets/VERVANG-GARAGE-ID', // ← vervang
+    naamVeld: 'garage_naam',
+    badge1:  row => row.type || null,
+    badge2:  row => row.autos_pw ? row.autos_pw + ' auto\'s/wk' : null,
+  },
+
+  // ── NIEUWE BRANCHE TOEVOEGEN? KOPIEER DIT BLOK: ──
+  // accountant: {
+  //   label:   'Accountant',
+  //   emoji:   '📒',
+  //   color:   '#34d399',
+  //   api:     'https://api.sheetbest.com/sheets/JOUW-NIEUWE-ID',
+  //   naamVeld: 'kantoor_naam',
+  //   badge1:  row => row.software || null,
+  //   badge2:  row => row.klanten_aantal ? row.klanten_aantal + ' klanten' : null,
+  // },
+};
+
+// Status opties — pas aan als je wilt
+const STATUSSEN = {
+  nieuw:    { label: 'Nieuw',    color: '#6c63ff' },
+  gebeld:   { label: 'Gebeld',   color: '#ff9f43' },
+  afspraak: { label: 'Afspraak', color: '#a78bfa' },
+  klant:    { label: 'Klant',    color: '#00e5a0' },
+  nee:      { label: 'Nee',      color: '#ff6584' },
+};
+
+// ──────────────────────────────────────────────
+//  EINDE CONFIG — hieronder hoef je niets te doen
+// ──────────────────────────────────────────────
+
+let alleData = [];
+let huidigFilter = 'alle';
+let statusCache = {}; // lokaal opgeslagen statussen
+
+// ── LOGIN ──
+function checkPW() {
+  if (document.getElementById('pw-input').value === WACHTWOORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    bouwSidebar();
+    laadAlles();
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+// ── SIDEBAR DYNAMISCH BOUWEN ──
+function bouwSidebar() {
+  const container = document.getElementById('sidebar-filter-items');
+  container.innerHTML = Object.entries(BRANCHES).map(([key, b]) => `
+    <button class="filter-btn" id="filter-${key}" onclick="setFilter('${key}')">
+      <span class="f-dot" style="background:${b.color}"></span>
+      ${b.label}
+      <span class="filter-count" id="count-${key}">—</span>
+    </button>
+  `).join('');
+}
+
+// ── DATA LADEN ──
+async function laadAlles() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  document.getElementById('klanten-container').innerHTML = `<div class="loading-state"><div style="font-family:'Syne Mono',monospace;font-size:0.8rem">Alle branches laden...</div><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+
+  const resultaten = await Promise.allSettled(
+    Object.entries(BRANCHES).map(async ([key, config]) => {
+      try {
+        const res = await fetch(config.api);
+        const data = await res.json();
+        return data
+          .filter(r => r[config.naamVeld] || r.naam)
+          .map(r => ({ ...r, _branche: key }));
+      } catch(e) {
+        console.warn(`Fout bij laden ${key}:`, e);
+        return [];
+      }
+    })
+  );
+
+  alleData = resultaten
+    .filter(r => r.status === 'fulfilled')
+    .flatMap(r => r.value);
+
+  // Sorteer nieuwste eerst
+  alleData.sort((a, b) => parseDatum(b.datum) - parseDatum(a.datum));
+
+  updateKPIs();
+  renderAlles();
+  btn.classList.remove('loading');
+}
+
+function parseDatum(str) {
+  if (!str) return 0;
+  try {
+    const [dag, rest] = str.split(' ');
+    const [d, m, y] = dag.split('-');
+    return new Date(`${y}-${m}-${d}T${rest || '00:00'}`).getTime();
+  } catch { return 0; }
+}
+
+// ── KPIs ──
+function updateKPIs() {
+  const n = alleData.length;
+  document.getElementById('kpi-totaal').textContent = n;
+  document.getElementById('kpi-emails').textContent = alleData.filter(r => r.email).length;
+  document.getElementById('sb-totaal').textContent = n;
+
+  const besparingen = alleData.map(r => parseInt(r.geschatte_besparing_uren || 0)).filter(b => b > 0);
+  const gemB = besparingen.length ? Math.round(besparingen.reduce((a,b)=>a+b,0)/besparingen.length) : 0;
+  document.getElementById('kpi-besparing').textContent = gemB ? gemB + 'u' : '—';
+  document.getElementById('sb-besparing').textContent = gemB ? gemB + 'u' : '—';
+
+  const scores = alleData.map(r => parseInt(r.automatisering_score || 0)).filter(s => s > 0);
+  const gemS = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+  document.getElementById('kpi-score').textContent = gemS || '—';
+
+  const warm = alleData.filter(r => r.budget === '300-700' || r.budget === '700+').length;
+  document.getElementById('kpi-warm').textContent = warm || '—';
+  document.getElementById('sb-warm').textContent = warm || '—';
+
+  // Counts per branche in sidebar
+  document.getElementById('count-alle').textContent = n;
+  Object.keys(BRANCHES).forEach(key => {
+    const el = document.getElementById('count-' + key);
+    if (el) el.textContent = alleData.filter(r => r._branche === key).length;
+  });
+}
+
+// ── FILTER ──
+function setFilter(branche) {
+  huidigFilter = branche;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('filter-' + branche)?.classList.add('active');
+  renderAlles();
+}
+
+// ── RENDER ──
+function renderAlles() {
+  const zoek = (document.getElementById('zoek-input').value || '').toLowerCase();
+
+  const gefilterd = alleData.filter(r => {
+    if (huidigFilter !== 'alle' && r._branche !== huidigFilter) return false;
+    if (zoek) {
+      const cfg = BRANCHES[r._branche];
+      const naam = (r[cfg?.naamVeld] || r.naam || '').toLowerCase();
+      const email = (r.email || '').toLowerCase();
+      const contact = (r.naam || '').toLowerCase();
+      if (!naam.includes(zoek) && !email.includes(zoek) && !contact.includes(zoek)) return false;
+    }
+    return true;
+  });
+
+  const container = document.getElementById('klanten-container');
+
+  if (gefilterd.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="big-icon">📭</div><h3>Geen inzendingen gevonden</h3><p>Stuur de intake link naar klanten of pas je filter aan.</p></div>`;
+    return;
+  }
+
+  if (huidigFilter === 'alle') {
+    // Groepeer per branche
+    let html = '';
+    Object.entries(BRANCHES).forEach(([key, cfg]) => {
+      const rijen = gefilterd.filter(r => r._branche === key);
+      if (rijen.length === 0) return;
+      html += `<div class="branche-header">
+        <span style="font-size:1.1rem">${cfg.emoji}</span>
+        <h2>${cfg.label}</h2>
+        <span class="branche-count">${rijen.length} inzending${rijen.length !== 1 ? 'en' : ''}</span>
+      </div>`;
+      rijen.forEach((r, i) => { html += kaartHTML(r, key + '_' + i); });
+    });
+    container.innerHTML = html;
+  } else {
+    container.innerHTML = gefilterd.map((r, i) => kaartHTML(r, r._branche + '_' + i)).join('');
+  }
+}
+
+// ── KAART HTML ──
+function initialen(s) { return (s || '?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+
+function kaartHTML(row, idx) {
+  const key = row._branche;
+  const cfg = BRANCHES[key];
+  const bedrijf = row[cfg.naamVeld] || row.naam || 'Onbekend';
+  const score = parseInt(row.automatisering_score) || 0;
+  const besparing = parseInt(row.geschatte_besparing_uren) || 0;
+  const b1 = cfg.badge1(row);
+  const b2 = cfg.badge2(row);
+  const isWarm = row.budget === '300-700' || row.budget === '700+';
+  const status = statusCache[idx] || row.status || 'nieuw';
+  const automations = berekenAutomations(row, key);
+  const emailSubject = encodeURIComponent('Jouw automatiseringsplan');
+  const emailBody = encodeURIComponent(`Beste ${(row.naam||'').split(' ')[0]},\n\nBedankt voor het invullen van onze scan!\n\nWe hebben je resultaten bekeken en nemen binnenkort contact met je op.\n\nMet vriendelijke groet,\nNiels Automatiseert`);
+
+  return `
+    <div class="klant-card" id="card-${idx}">
+      <div class="klant-header" onclick="toggleCard('${idx}')">
+        <div class="klant-header-left">
+          <div class="klant-avatar" style="background:${cfg.color}22;color:${cfg.color}">${initialen(bedrijf)}</div>
+          <div>
+            <div class="klant-naam">${bedrijf}</div>
+            <div class="klant-meta">${row.datum || ''} · ${row.naam || ''} · ${row.email || 'geen email'}</div>
+          </div>
+        </div>
+        <div class="klant-badges">
+          <span class="badge" style="background:${cfg.color}18;color:${cfg.color}">${cfg.emoji} ${cfg.label}</span>
+          ${b1 ? `<span class="badge badge-info">${b1}</span>` : ''}
+          ${b2 ? `<span class="badge badge-info">${b2}</span>` : ''}
+          ${score ? `<span class="badge badge-score">Score ${score}</span>` : ''}
+          ${isWarm ? `<span class="badge badge-hot">💰 Hot</span>` : ''}
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+
+      <div class="klant-detail">
+        <div class="detail-tabs">
+          <button class="tab-btn active" onclick="switchTab('${idx}','info',this)">Bedrijf</button>
+          <button class="tab-btn" onclick="switchTab('${idx}','operatie',this)">Operatie</button>
+          <button class="tab-btn" onclick="switchTab('${idx}','pijn',this)">Pijnpunten</button>
+          <button class="tab-btn" onclick="switchTab('${idx}','plan',this)">Automatiseringsplan</button>
+          <button class="tab-btn" onclick="switchTab('${idx}','acties',this)">Acties</button>
+        </div>
+
+        <div class="tab-content active" id="tab-${idx}-info">
+          <div class="info-grid">
+            <div>
+              <div class="section-label">Bedrijfsinfo</div>
+              <div class="info-row"><span class="info-label">Branche</span><span class="info-value">${cfg.label}</span></div>
+              <div class="info-row"><span class="info-label">Website</span><span class="info-value">${row.website || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Team</span><span class="info-value">${row.team_size || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Rol</span><span class="info-value">${row.rol || '—'}</span></div>
+              ${b1 ? `<div class="info-row"><span class="info-label">${key==='webshop'?'Platform':key==='restaurant'?'Type':key==='makelaar'?'Type':'Type'}</span><span class="info-value">${b1}</span></div>` : ''}
+              ${b2 ? `<div class="info-row"><span class="info-label">Volume</span><span class="info-value">${b2}</span></div>` : ''}
+            </div>
+            <div>
+              <div class="section-label">Contact & budget</div>
+              <div class="info-row"><span class="info-label">Naam</span><span class="info-value">${row.naam || '—'}</span></div>
+              <div class="info-row"><span class="info-label">E-mail</span><span class="info-value"><a href="mailto:${row.email}" style="color:var(--accent)">${row.email || '—'}</a></span></div>
+              <div class="info-row"><span class="info-label">Telefoon</span><span class="info-value">${row.telefoon || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Budget/mnd</span><span class="info-value">${row.budget || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Tech niveau</span><span class="info-value">${row.tech || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Doel</span><span class="info-value">${row.doel || '—'}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-${idx}-operatie">
+          <div class="info-grid">
+            <div>
+              <div class="section-label">Tijdbesteding</div>
+              <div class="info-row"><span class="info-label">Uren handmatig/wk</span><span class="info-value">${row.uren_pw || '—'}u → besparing ~${besparing}u</span></div>
+              <div class="info-row"><span class="info-label">Dagelijkse taken</span><span class="info-value">${(row.dagelijkse_taken||'—').replace(/,/g,', ')}</span></div>
+              <div class="info-row"><span class="info-label">Boekhouding</span><span class="info-value">${row.boekhouding || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Boekhoudkoppeling</span><span class="info-value">${row.koppeling_boek || row.kassa_boek || row.systeem_koppeling || '—'}</span></div>
+            </div>
+            <div>
+              <div class="section-label">Succes & pogingen</div>
+              <div class="info-row"><span class="info-label">Eerder geprobeerd</span><span class="info-value">${row.eerdere_automatisering || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Succesdefinitie</span><span class="info-value">${row.succes_def ? row.succes_def.substring(0,60)+'...' : '—'}</span></div>
+              <div class="info-row"><span class="info-label">Rapportage tijd</span><span class="info-value">${row.rapportage_tijd || row.finance_tijd || row.admin_tijd || '—'}</span></div>
+            </div>
+          </div>
+          ${row.werkdag_start ? `<div class="section-label">Hoe begint hun dag</div><div class="quote-block orange">${row.werkdag_start.substring(0,200)}${row.werkdag_start.length>200?'...':''}</div>` : ''}
+          ${row.haat_taak ? `<div class="section-label">Liefst nooit meer doen</div><div class="quote-block">${row.haat_taak.substring(0,200)}</div>` : ''}
+        </div>
+
+        <div class="tab-content" id="tab-${idx}-pijn">
+          <div class="info-grid">
+            <div>
+              <div class="section-label">Frustraties</div>
+              <div class="info-row"><span class="info-label">Problemen</span><span class="info-value">${(row.frustraties||'—').replace(/_/g,' ').replace(/,/g,', ')}</span></div>
+              <div class="section-label" style="margin-top:1rem">Doelen</div>
+              <div class="info-row"><span class="info-label">6-maands doel</span><span class="info-value">${row.doel || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Budget</span><span class="info-value">${row.budget || '—'}</span></div>
+            </div>
+            <div>
+              <div class="section-label">In hun eigen woorden</div>
+              ${row.top1_automatisering ? `<div class="quote-block">"${row.top1_automatisering.substring(0,180)}"</div>` : ''}
+              ${row.gevolg_geen_oplossing ? `<div class="quote-block orange" style="margin-top:0.5rem">"${row.gevolg_geen_oplossing.substring(0,180)}"</div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-${idx}-plan">
+          ${score ? `<div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:${score}%"></div></div><div class="score-num">Score ${score}/100 · Besparing ~${besparing}u/wk</div></div>` : ''}
+          ${automations.map(a => `
+            <div class="auto-item ${a.cls}">
+              <span class="auto-prio">${a.prio}</span>
+              <div><strong style="font-size:0.8rem">${a.titel}</strong><br><span style="color:var(--muted);font-size:0.74rem">${a.beschr}</span></div>
+            </div>`).join('')}
+        </div>
+
+        <div class="tab-content" id="tab-${idx}-acties">
+          <div class="info-grid">
+            <div>
+              <div class="section-label">Status bijwerken</div>
+              <div class="status-wrap">
+                <select class="status-select" onchange="setStatus('${idx}', this.value)">
+                  ${Object.entries(STATUSSEN).map(([k,v]) => `<option value="${k}" ${status===k?'selected':''}>${v.label}</option>`).join('')}
+                </select>
+                <span style="font-family:'Syne Mono',monospace;font-size:0.6rem;color:var(--muted)">Lokaal opgeslagen</span>
+              </div>
+              <div class="section-label" style="margin-top:1rem">Direct contact</div>
+              ${row.email ? `<a class="btn-mail" href="mailto:${row.email}?subject=${emailSubject}&body=${emailBody}">✉️ Stuur e-mail</a>` : ''}
+              ${row.telefoon ? `<div style="margin-top:0.5rem;font-family:'Syne Mono',monospace;font-size:0.7rem;color:var(--muted)">📞 ${row.telefoon}</div>` : ''}
+            </div>
+            <div>
+              <div class="section-label">Snelle samenvatting</div>
+              <div class="info-row"><span class="info-label">Besparing/jr</span><span class="info-value" style="color:var(--green)">€${Math.round(besparing*65*4).toLocaleString()}</span></div>
+              <div class="info-row"><span class="info-label">Uren/wk bespaard</span><span class="info-value">${besparing}u</span></div>
+              <div class="info-row"><span class="info-label">Budget beschikbaar</span><span class="info-value">${row.budget || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Tech niveau</span><span class="info-value">${row.tech || '—'}</span></div>
+              <div class="info-row"><span class="info-label">Eerder geprobeerd</span><span class="info-value">${row.eerdere_automatisering ? 'Ja' : 'Nee / onbekend'}</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+// ── STATUS LOCAL OPSLAAN ──
+function setStatus(idx, val) {
+  statusCache[idx] = val;
+  // Optioneel: ook naar Sheet sturen via SheetBest PATCH
+}
+
+// ── TOGGLE / TABS ──
+function toggleCard(idx) {
+  document.getElementById('card-' + idx).classList.toggle('open');
+}
+function switchTab(idx, tab, btn) {
+  const card = document.getElementById('card-' + idx);
+  card.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  card.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${idx}-${tab}`).classList.add('active');
+}
+
+// ── AUTOMATION ENGINE ──
+function berekenAutomations(row, branche) {
+  const s = v => (v||'').split(',').map(x=>x.trim());
+  const has = (v, ...w) => { if(!v) return false; const t=v.toLowerCase(); return w.some(x=>t.includes(x.toLowerCase())); };
+  const dag = s(row.dagelijkse_taken);
+  const frust = s(row.frustraties);
+  const flows = s(row.email_flows);
+  let a = [];
+  const add = (p,c,t,b) => a.push({prio:p,cls:c,titel:t,beschr:b});
+
+  if (branche === 'webshop') {
+    if (has(row.koppeling_boek,'nee','deels') && row.boekhouding && !['geen','excel'].includes(row.boekhouding))
+      add('HOOG','hoog',`🧾 Factuurkoppeling ${row.boekhouding}`,`Elke bestelling automatisch een factuur in ${row.boekhouding}. Geen handmatig overtypen meer.`);
+    if (has(row.voorraad_systeem,'excel','handmatig') || has(row.inkoop_trigger,'te_laat'))
+      add('HOOG','hoog','⚠️ Slimme voorraad- en inkoopwaarschuwing','Alert als product onder minimum zakt — op basis van verkoopsnelheid berekend.');
+    if (dag.includes('bestellingen_checken') || frust.includes('geen_inzicht'))
+      add('HOOG','hoog','📊 Dagelijks omzetrapport','Elke ochtend automatisch: bestellingen, omzet en top-producten in de inbox.');
+    if (!flows.includes('verlaten_winkelmand'))
+      add('MID','mid','✉️ Verlaten winkelmand + win-back','Gemiddeld 10–15% extra omzet via automatische herinneringen.');
+    if (frust.includes('systemen') || has(row.koppeling_boek,'nee'))
+      add('MID','mid','🔗 Systeem-integratie','Webshop, boekhouding en verzending aan elkaar koppelen — stop met overtypen.');
+    add('LAAG','laag','📦 Track-and-trace automatisering','Automatische verzendmelding + proactief bericht bij vertraging.');
+  }
+  if (branche === 'restaurant') {
+    if (has(row.no_show,'regelmatig','groot_probleem') || has(row.reminders,'nee','handmatig'))
+      add('HOOG','hoog','📅 Reserveringsbevestiging + reminder','Automatische herinnering 24u van tevoren. No-shows dalen 40–60%.');
+    if (has(row.rooster_tool,'excel','whatsapp','papier') || frust.includes('rooster_chaos'))
+      add('HOOG','hoog','📋 Slim roosterplanningssysteem','Personeel vraagt zelf beschikbaarheid aan. Wijzigingen als push-notificatie.');
+    if (has(row.kassa_boek,'nee','deels'))
+      add('HOOG','hoog','🧾 Koppeling kassa ↔ boekhouding','Elke transactie automatisch naar boekhouding. Geen handmatige exports meer.');
+    if (has(row.reviews_aanpak,'sporadisch','nooit') || frust.includes('reviews_achterstaan'))
+      add('MID','mid','⭐ Automatische review verzameling','Na elk bezoek automatisch review-verzoek via sms of e-mail.');
+    add('LAAG','laag','📱 WhatsApp Business automatisering','Automatische antwoorden op veelgestelde vragen tijdens service.');
+  }
+  if (branche === 'makelaar') {
+    if (has(row.crm,'excel','geen') || has(row.lead_opvolging,'nauwelijks','ad_hoc'))
+      add('HOOG','hoog','🎯 Automatische lead opvolging','Leads reageren binnen 5 minuten. Gestructureerde opvolgsequentie 7 dagen.');
+    if (has(row.bezichtiging_planning,'telefoon_email') || frust.includes('planning_chaos'))
+      add('HOOG','hoog','📅 Zelf-inplannen bezichtigingen','Tijdslot kiezen uit beschikbaarheid. Automatische bevestiging + reminder.');
+    if (has(row.object_publicatie,'handmatig_funda') || frust.includes('funda_handmatig'))
+      add('HOOG','hoog','🏠 Automatische objectpublicatie','Object aangemeld → automatisch live op Funda, website en social media.');
+    if (has(row.social_posting,'handmatig','zelden'))
+      add('MID','mid','📱 Automatische social media posts','Bij elk object automatisch een post op Instagram en Facebook.');
+    add('LAAG','laag','⭐ Review verzameling na overdracht','Na elke overdracht automatisch review-verzoek voor Google.');
+  }
+  if (branche === 'garage') {
+    if (has(row.apk_reminder,'handmatig_soms','nee') || frust.includes('geen_apk_terugkeer'))
+      add('HOOG','hoog','🔔 APK & onderhoudsherinneringen','6 weken voor vervaldatum automatisch reminder. Direct hogere retentie.');
+    if (has(row.status_updates,'bellen','klant_belt') || frust.includes('klanten_vragen_status'))
+      add('HOOG','hoog','📱 Automatische statusupdates per sms','Bij elke stap een bericht. 60% minder telefoontjes.');
+    if (has(row.afspraak_methode,'telefoon') || frust.includes('planning_chaos'))
+      add('HOOG','hoog','📅 Online afspraken + werkplaatsplanning','Klanten plannen 24/7 zelf in. Automatische bevestiging + reminder.');
+    if (has(row.facturatie,'word_excel') || frust.includes('facturatie_traag'))
+      add('HOOG','hoog','🧾 Automatische facturatie','Werkorder klaar → factuur automatisch aangemaakt en verstuurd.');
+    add('MID','mid','⭐ Review verzameling na werkorder','Na elke werkorder automatisch sms naar Google reviews.');
+  }
+
+  if (a.length === 0) add('LAAG','laag','✅ Baseline monitoring','Geen acute pijnpunten. Baseline meting opzetten voor langetermijn optimalisatie.');
+  return a;
+}
+</script>
+</body>
+</html>
